@@ -13,14 +13,14 @@ This plan delivers the app in [SPEC.md](SPEC.md) in four iterations. Each iterat
 
 Goal: tap a big button, RSG plays, and it keeps playing with the screen off.
 
-- [ ] Scaffold the Gradle project (Kotlin, Compose, Media3, minSdk 26, version catalog)
+- [x] Scaffold the Gradle project (Kotlin, Compose, Media3, minSdk 26, version catalog)
 - [ ] GitHub Actions workflow that builds the debug APK and uploads it as an artifact
-- [ ] MediaSessionService + ExoPlayer playing the redirect stream URL (ExoPlayer follows the redirect)
-- [ ] Fixed metadata: title "RSG", artist "Radio Sonder Grense", station artwork
-- [ ] Foreground service type `mediaPlayback`
-- [ ] Audio focus and becoming-noisy handling (pause on headphone unplug)
-- [ ] Compose screen: one huge "Speel"/"Stop" button connected to the service, large high-contrast text
-- [ ] Ask for `POST_NOTIFICATIONS` permission on Android 13+
+- [x] MediaSessionService + ExoPlayer playing the redirect stream URL (ExoPlayer follows the redirect)
+- [x] Fixed metadata: title "RSG", artist "Radio Sonder Grense", station artwork
+- [x] Foreground service type `mediaPlayback`
+- [x] Audio focus and becoming-noisy handling (pause on headphone unplug)
+- [x] Compose screen: one huge "Speel"/"Stop" button connected to the service, large high-contrast text
+- [x] Ask for `POST_NOTIFICATIONS` permission on Android 13+
 - [ ] Starter README with build and sideload steps
 
 Done when:
