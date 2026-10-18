@@ -6,6 +6,12 @@ activityCompose = "1.13.0"
 lifecycle = "2.11.0"
 composeBom = "2026.09.00"
 media3 = "1.11.1"
+junit = "4.13.2"
+robolectric = "4.17"
+truth = "1.4.5"
+androidxTestCore = "1.7.0"
+androidxTestJunit = "1.3.0"
+kover = "0.9.11"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -19,6 +25,18 @@ androidx-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
 media3-session = { module = "androidx.media3:media3-session", version.ref = "media3" }
 
+# Tests
+junit = { module = "junit:junit", version.ref = "junit" }
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
+truth = { module = "com.google.truth:truth", version.ref = "truth" }
+androidx-test-core-ktx = { module = "androidx.test:core-ktx", version.ref = "androidxTestCore" }
+androidx-test-ext-junit-ktx = { module = "androidx.test.ext:junit-ktx", version.ref = "androidxTestJunit" }
+androidx-compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
+androidx-compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }
+media3-test-utils = { module = "androidx.media3:media3-test-utils", version.ref = "media3" }
+media3-test-utils-robolectric = { module = "androidx.media3:media3-test-utils-robolectric", version.ref = "media3" }
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "kover" }

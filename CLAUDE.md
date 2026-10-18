@@ -13,10 +13,21 @@ Stack: Kotlin, Jetpack Compose, Media3 (ExoPlayer + MediaSessionService), minSdk
 ```sh
 ./gradlew assembleDebug   # APK at app/build/outputs/apk/debug/app-debug.apk
 ./gradlew lint
+./gradlew testDebugUnitTest koverVerifyDebug   # all tests + coverage gate (what CI's `test` check runs)
+./gradlew testDebugUnitTest --tests "house.ouwl.draadloos.playback.RadioControlsTest"   # one class
+./gradlew koverHtmlReportDebug   # report at app/build/reports/kover/htmlDebug/index.html
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-Run `./gradlew` as the entire Bash command, with no `cd`, `&&` or env prefix. It is excluded from the Claude Code sandbox only in that form, and `JAVA_HOME` comes from the local settings. CI (`.github/workflows/build.yml`) builds the debug APK on pushes to `main` and on PRs.
+Run `./gradlew` as the entire Bash command, with no `cd`, `&&` or env prefix. It is excluded from the Claude Code sandbox only in that form, and `JAVA_HOME` comes from the local settings. CI (`.github/workflows/build.yml`) runs a `build` job (debug APK artifact) and a `test` job (tests + coverage gate) on pushes to `main` and on PRs.
+
+## Tests
+
+- Tests are JVM unit tests under `app/src/test`, run with Robolectric (`@RunWith(AndroidJUnit4::class)`), with one test class per source file in the same package. There are no instrumented (`androidTest`) tests.
+- New code comes with tests. `koverVerify` enforces minimum line and branch coverage (set in `app/build.gradle.kts`). The minimums only go up; never lower them to get a PR through.
+- `playback/FakeRadioPlayer` is a `SimpleBasePlayer` whose state tests set directly. Use it for anything that takes a `Player`.
+- `MainActivityTest` binds a real in-process `PlaybackService` with `ShadowApplication.setComponentNameAndServiceForBindService`. Tests that don't need playback must call `declareComponentUnbindable` instead, because Robolectric's default fake binding crashes Media3.
+- Use the `v2` Compose test rules (`androidx.compose.ui.test.junit4.v2`); the old ones are deprecated.
 
 ## Layout
 

@@ -21,6 +21,16 @@ The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
 
 Every push to `main` and every pull request also builds the APK on GitHub Actions. Open the workflow run and download the `draadloos-debug-apk` artifact (a zip containing the APK).
 
+## Tests
+
+```sh
+./gradlew testDebugUnitTest koverVerifyDebug
+```
+
+The tests run on the JVM with Robolectric, so no phone or emulator is needed. `koverVerifyDebug` fails if line or branch coverage drops below the minimums in `app/build.gradle.kts`. For a coverage report, run `./gradlew koverHtmlReportDebug` and open `app/build/reports/kover/htmlDebug/index.html`.
+
+CI runs the same command as the `test` check on every pull request.
+
 ## Install on a phone (sideload)
 
 **With a USB cable and `adb`:** turn on USB debugging on the phone (Settings → About phone → tap "Build number" seven times, then Developer options → USB debugging), connect it, and run:
