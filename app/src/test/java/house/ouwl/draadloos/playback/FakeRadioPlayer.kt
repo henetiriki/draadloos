@@ -1,6 +1,7 @@
 package house.ouwl.draadloos.playback
 
 import android.os.Looper
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -22,12 +23,14 @@ class FakeRadioPlayer(
 
     private var playWhenReadyReason = Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST
     private var error: PlaybackException? = null
+    private var suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_NONE
 
     override fun getState(): State =
         State.Builder()
             .setAvailableCommands(Player.Commands.Builder().addAllCommands().build())
             .setPlayWhenReady(playWhenReady, playWhenReadyReason)
             .setPlaybackState(playbackState)
+            .setPlaybackSuppressionReason(suppressionReason)
             .setPlayerError(error)
             // A non-idle state needs a playlist.
             .setPlaylist(
@@ -46,6 +49,11 @@ class FakeRadioPlayer(
         commands += "prepare"
         playbackState = Player.STATE_BUFFERING
         error = null
+        return Futures.immediateVoidFuture()
+    }
+
+    override fun handleSeek(mediaItemIndex: Int, positionMs: Long, seekCommand: Int): ListenableFuture<*> {
+        if (positionMs == C.TIME_UNSET) commands += "seekToDefaultPosition"
         return Futures.immediateVoidFuture()
     }
 
@@ -82,7 +90,9 @@ class FakeRadioPlayer(
         playbackState: Int = this.playbackState,
         playWhenReadyReason: Int = this.playWhenReadyReason,
         error: PlaybackException? = null,
+        suppressionReason: Int = this.suppressionReason,
     ) {
+        this.suppressionReason = suppressionReason
         this.playWhenReady = playWhenReady
         this.playbackState = playbackState
         this.playWhenReadyReason = playWhenReadyReason

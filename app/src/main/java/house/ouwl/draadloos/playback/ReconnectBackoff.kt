@@ -7,18 +7,29 @@ package house.ouwl.draadloos.playback
  */
 class ReconnectBackoff {
 
+    /** One failed attempt: how long to wait, and how many failures in a row this makes. */
+    data class Retry(val delayMs: Long, val failures: Int)
+
     /** Consecutive failures since the last [reset]. */
     var failures = 0
         @Synchronized get
         private set
 
+    /**
+     * Counts a failure. The delay and the count come from the same step, so a [reset] from
+     * another thread can't land between them. With [startOver] the count begins again first:
+     * a hiccup while audio still plays is not part of an outage.
+     */
     @Synchronized
-    fun nextDelayMs(): Long {
+    fun nextRetry(startOver: Boolean = false): Retry {
+        if (startOver) failures = 0
         // Past the cap the shift would only overflow, so stop growing it.
         val delay = minOf(BASE_DELAY_MS shl minOf(failures, MAX_SHIFT), MAX_DELAY_MS)
         failures++
-        return delay
+        return Retry(delay, failures)
     }
+
+    fun nextDelayMs(): Long = nextRetry().delayMs
 
     @Synchronized
     fun reset() {

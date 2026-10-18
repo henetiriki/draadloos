@@ -80,7 +80,7 @@ class LiveStreamTest {
     fun pause_afterFallback_goesBackToAac() {
         val player = attached(true, Player.STATE_BUFFERING)
         repeat(3) { loadFails() }
-        pass(0)
+        pass(8_000)
         assertThat(player.commands).containsExactly("setMediaItem:hls", "prepare").inOrder()
         player.commands.clear()
 
@@ -115,19 +115,34 @@ class LiveStreamTest {
     }
 
     @Test
-    fun focusRegained_afterAStoppedPause_reconnects() {
-        val player = attached(false, Player.STATE_IDLE)
+    fun callEnding_rejoinsTheStreamLive() {
+        val player = attached(true, Player.STATE_READY)
 
-        player.moveTo(playWhenReady = true, playWhenReadyReason = Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS)
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS)
+        assertThat(player.commands).isEmpty()
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_NONE)
 
-        assertThat(player.commands).containsExactly("prepare")
+        assertThat(player.commands).containsExactly("stop", "seekToDefaultPosition", "prepare").inOrder()
     }
 
     @Test
-    fun focusRegained_whileAlreadyConnected_doesNothing() {
-        val player = attached(false, Player.STATE_READY)
+    fun callEnding_afterTheUserStopped_doesNothing() {
+        val player = attached(true, Player.STATE_READY)
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS)
 
-        player.moveTo(playWhenReady = true, playWhenReadyReason = Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS)
+        player.pause()
+        pass(0)
+        player.commands.clear()
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_NONE)
+
+        assertThat(player.commands).isEmpty()
+    }
+
+    @Test
+    fun suppressionEndingWithoutOneStarting_doesNothing() {
+        val player = attached(true, Player.STATE_READY)
+
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_NONE)
 
         assertThat(player.commands).isEmpty()
     }
@@ -171,7 +186,7 @@ class LiveStreamTest {
         assertThat(player.commands).isEmpty()
         pass(1)
 
-        assertThat(player.commands).containsExactly("stop", "prepare").inOrder()
+        assertThat(player.commands).containsExactly("stop", "seekToDefaultPosition", "prepare").inOrder()
     }
 
     @Test
@@ -181,7 +196,7 @@ class LiveStreamTest {
         player.moveTo(playbackState = Player.STATE_ENDED)
         pass(2_000)
 
-        assertThat(player.commands).containsExactly("stop", "prepare").inOrder()
+        assertThat(player.commands).containsExactly("stop", "seekToDefaultPosition", "prepare").inOrder()
     }
 
     @Test
@@ -196,7 +211,7 @@ class LiveStreamTest {
         assertThat(player.commands).isEmpty()
         pass(1)
 
-        assertThat(player.commands).containsExactly("stop", "prepare").inOrder()
+        assertThat(player.commands).containsExactly("stop", "seekToDefaultPosition", "prepare").inOrder()
     }
 
     @Test
@@ -232,16 +247,20 @@ class LiveStreamTest {
         val player = attached(true, Player.STATE_BUFFERING)
 
         repeat(2) { loadFails() }
-        pass(0)
+        pass(60_000)
         assertThat(player.commands).isEmpty()
 
         loadFails()
-        pass(0)
+        pass(7_999)
+        assertThat(player.commands).isEmpty()
+        pass(1)
         assertThat(player.commands).containsExactly("setMediaItem:hls", "prepare").inOrder()
         player.commands.clear()
 
         repeat(3) { loadFails() }
-        pass(0)
+        pass(29_999)
+        assertThat(player.commands).isEmpty()
+        pass(1)
         assertThat(player.commands).containsExactly("setMediaItem:aac", "prepare").inOrder()
     }
 
@@ -250,7 +269,7 @@ class LiveStreamTest {
         val player = attached(false, Player.STATE_IDLE)
 
         repeat(3) { loadFails() }
-        pass(0)
+        pass(60_000)
 
         assertThat(player.commands).isEmpty()
     }
@@ -261,6 +280,46 @@ class LiveStreamTest {
         player.moveTo(playbackState = Player.STATE_IDLE, error = streamError())
 
         liveStream.release()
+        pass(60_000)
+
+        assertThat(player.commands).isEmpty()
+    }
+
+    @Test
+    fun aLoadFailingWhileAudioPlays_isNotAnOutage() {
+        val player = attached(true, Player.STATE_READY)
+
+        repeat(5) { loadFails() }
+        pass(60_000)
+
+        assertThat(backoff.failures).isEqualTo(1)
+        assertThat(player.commands).isEmpty()
+    }
+
+    @Test
+    fun switchingSource_followsTheBackoffSchedule_andSkipsTheReconnect() {
+        val player = attached(true, Player.STATE_READY)
+        repeat(2) {
+            player.moveTo(playbackState = Player.STATE_IDLE, error = streamError())
+            pass(if (it == 0) 2_000 else 4_000)
+        }
+        player.commands.clear()
+
+        player.moveTo(playbackState = Player.STATE_IDLE, error = streamError())
+        pass(7_999)
+        assertThat(player.commands).isEmpty()
+        pass(1)
+
+        // The third failure switches to HLS instead of reconnecting to the same stream.
+        assertThat(player.commands).containsExactly("setMediaItem:hls", "prepare").inOrder()
+    }
+
+    @Test
+    fun recovering_cancelsAPlannedSwitch() {
+        val player = attached(true, Player.STATE_BUFFERING)
+        repeat(3) { loadFails() }
+
+        player.moveTo(playbackState = Player.STATE_READY)
         pass(60_000)
 
         assertThat(player.commands).isEmpty()

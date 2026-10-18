@@ -72,8 +72,13 @@ class RadioScreenTest {
         idleMainLooper()
         compose.onNodeWithText("Stop").assertExists()
 
-        // A stream error drops to idle with playWhenReady still set: the button offers Speel.
+        // A stream error drops to idle with playWhenReady still set. The radio keeps
+        // reconnecting, so the button keeps offering Stop.
         player.moveTo(playbackState = Player.STATE_IDLE)
+        idleMainLooper()
+        compose.onNodeWithText("Stop").assertExists()
+
+        player.moveTo(playWhenReady = false)
         idleMainLooper()
         compose.onNodeWithText("Speel").assertExists()
     }

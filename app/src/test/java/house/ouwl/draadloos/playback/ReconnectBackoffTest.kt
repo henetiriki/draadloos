@@ -40,6 +40,19 @@ class ReconnectBackoffTest {
     }
 
     @Test
+    fun nextRetry_givesTheDelayAndTheCountTogether() {
+        assertThat(backoff.nextRetry()).isEqualTo(ReconnectBackoff.Retry(2_000L, 1))
+        assertThat(backoff.nextRetry()).isEqualTo(ReconnectBackoff.Retry(4_000L, 2))
+    }
+
+    @Test
+    fun nextRetry_startingOver_beginsAgainFromTwoSeconds() {
+        repeat(4) { backoff.nextRetry() }
+
+        assertThat(backoff.nextRetry(startOver = true)).isEqualTo(ReconnectBackoff.Retry(2_000L, 1))
+    }
+
+    @Test
     fun resetStartsOverFromTwoSeconds() {
         repeat(5) { backoff.nextDelayMs() }
 

@@ -19,10 +19,15 @@ class RadioControlsTest {
     }
 
     @Test
-    fun isOff_whenFailedEndedOrPaused() {
-        // A stream error leaves the player idle with playWhenReady still set.
-        assertThat(FakeRadioPlayer(true, Player.STATE_IDLE).isOn).isFalse()
-        assertThat(FakeRadioPlayer(true, Player.STATE_ENDED).isOn).isFalse()
+    fun isOn_whileReconnecting() {
+        // A stream error or end leaves the player idle with playWhenReady still set, and the
+        // retries carry on, so the button must offer Stop.
+        assertThat(FakeRadioPlayer(true, Player.STATE_IDLE).isOn).isTrue()
+        assertThat(FakeRadioPlayer(true, Player.STATE_ENDED).isOn).isTrue()
+    }
+
+    @Test
+    fun isOff_whenPaused() {
         assertThat(FakeRadioPlayer(false, Player.STATE_READY).isOn).isFalse()
         assertThat(FakeRadioPlayer(false, Player.STATE_IDLE).isOn).isFalse()
     }
@@ -46,12 +51,12 @@ class RadioControlsTest {
     }
 
     @Test
-    fun toggle_afterStreamError_reconnects() {
+    fun toggle_whileReconnecting_stops() {
         val player = FakeRadioPlayer(true, Player.STATE_IDLE)
 
         player.toggle()
 
-        assertThat(player.commands).containsExactly("prepare", "play").inOrder()
+        assertThat(player.commands).containsExactly("pause")
     }
 
     @Test

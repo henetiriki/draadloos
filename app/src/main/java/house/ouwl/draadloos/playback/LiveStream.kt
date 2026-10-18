@@ -13,8 +13,10 @@ import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 /**
  * Makes a [Player] behave like a radio rather than a podcast:
  *  - pausing stops the player and drops the connection, so playing again joins the live edge;
- *  - a failed or dropped stream is retried forever with [ReconnectBackoff];
- *  - after a few failures in a row it switches between the AAC stream and the HLS fallback.
+ *  - so does a call or another app taking the audio for a while, once it gives it back;
+ *  - a failed or dropped stream is retried forever with [ReconnectBackoff], always at the live edge;
+ *  - after a few failures in a row it switches between the AAC stream and the HLS fallback,
+ *    after the same backoff delay as any other retry.
  *
  * Build the player with [loadErrorPolicy], then call [attach].
  */
@@ -28,20 +30,31 @@ class LiveStream(
 
     private lateinit var player: Player
     private var usingFallback = false
+    private var suppressed = false
+
+    // Written on the main thread, read on ExoPlayer's playback thread, which may not touch the player.
+    @Volatile
+    private var ready = false
 
     /**
-     * Retries every load error, however many, so the player stays "connecting" through an
-     * outage instead of failing. The default policy gives up after a few tries.
+     * Retries every load error, however many and whatever they are, so the player stays
+     * "connecting" through an outage instead of failing: a radio keeps trying. The default
+     * policy gives up after a few tries.
      */
     val loadErrorPolicy: LoadErrorHandlingPolicy = object : DefaultLoadErrorHandlingPolicy() {
         override fun getMinimumLoadableRetryCount(dataType: Int): Int = MAX_RETRIES
 
-        override fun getRetryDelayMsFor(loadErrorInfo: LoadErrorHandlingPolicy.LoadErrorInfo): Long =
-            recordFailure()
+        override fun getRetryDelayMsFor(loadErrorInfo: LoadErrorHandlingPolicy.LoadErrorInfo): Long {
+            // A load that fails while audio is still playing (one lost segment, say) isn't an outage.
+            val retry = backoff.nextRetry(startOver = ready)
+            if (retry.failures % FAILURES_PER_SOURCE == 0) mainHandler.postDelayed(switchSource, retry.delayMs)
+            return retry.delayMs
+        }
     }
 
     fun attach(player: Player) {
         this.player = player
+        ready = player.playbackState == Player.STATE_READY
         player.setMediaItem(primary)
         player.addListener(this)
     }
@@ -55,22 +68,35 @@ class LiveStream(
             // Pause means stop: close the connection, and start over on the AAC stream.
             mainHandler.removeCallbacksAndMessages(null)
             backoff.reset()
+            suppressed = false
             player.stop()
             if (usingFallback) {
                 usingFallback = false
                 player.setMediaItem(primary)
             }
-        } else if (reason == Player.PLAY_WHEN_READY_CHANGE_REASON_AUDIO_FOCUS_LOSS &&
-            player.playbackState == Player.STATE_IDLE
-        ) {
-            // Focus came back after a pause that stopped the stream: reconnect live.
-            player.prepare()
+        }
+    }
+
+    override fun onPlaybackSuppressionReasonChanged(playbackSuppressionReason: Int) {
+        if (playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE) {
+            // A call has the audio. The stream keeps buffering and would carry on from that
+            // old audio afterwards, so remember to rejoin it live instead. Stopping now would
+            // give the audio focus up, which ends the suppression straight away.
+            suppressed = true
+        } else if (suppressed) {
+            suppressed = false
+            if (player.playWhenReady) reconnectNow()
         }
     }
 
     override fun onPlaybackStateChanged(playbackState: Int) {
+        ready = playbackState == Player.STATE_READY
         when (playbackState) {
-            Player.STATE_READY -> backoff.reset()
+            Player.STATE_READY -> {
+                backoff.reset()
+                // It recovered by itself, so a switch planned for the outage isn't needed.
+                mainHandler.removeCallbacks(switchSource)
+            }
             Player.STATE_ENDED -> reconnectLater()
         }
     }
@@ -78,32 +104,34 @@ class LiveStream(
     override fun onPlayerError(error: PlaybackException) = reconnectLater()
 
     private fun reconnectLater() {
+        val retry = backoff.nextRetry()
         mainHandler.removeCallbacks(reconnect)
-        mainHandler.postDelayed(reconnect, recordFailure())
+        mainHandler.removeCallbacks(switchSource)
+        // Every third failure the retry is a switch to the other source.
+        val next = if (retry.failures % FAILURES_PER_SOURCE == 0) switchSource else reconnect
+        mainHandler.postDelayed(next, retry.delayMs)
+    }
+
+    /** Drops the old connection and rejoins at the live edge, not where the player left off. */
+    private fun reconnectNow() {
+        player.stop()
+        player.seekToDefaultPosition()
+        player.prepare()
     }
 
     // Stored, not method references, so removeCallbacks can match them.
     private val reconnect = Runnable {
         val idle = player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED
-        if (player.playWhenReady && idle) {
-            player.stop()
-            player.prepare()
-        }
+        if (player.playWhenReady && idle) reconnectNow()
     }
 
     private val switchSource = Runnable {
         if (player.playWhenReady) {
+            mainHandler.removeCallbacks(reconnect)
             usingFallback = !usingFallback
             player.setMediaItem(if (usingFallback) fallback else primary)
             player.prepare()
         }
-    }
-
-    /** Counts a failure and returns how long to wait before trying again. */
-    private fun recordFailure(): Long {
-        val delay = backoff.nextDelayMs()
-        if (backoff.failures % FAILURES_PER_SOURCE == 0) mainHandler.post(switchSource)
-        return delay
     }
 
     private companion object {
