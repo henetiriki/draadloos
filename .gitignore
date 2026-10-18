@@ -33,3 +33,6 @@ google-services.json
 # Android Profiling
 *.hprof
 
+
+# Project-local Gradle user home (sandboxed builds)
+.gradle-user-home/

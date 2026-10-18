@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Draadloos</string>
+    <string name="station_name">RSG</string>
+    <string name="station_tagline">Radio Sonder Grense</string>
+    <string name="play">Speel</string>
+    <string name="stop">Stop</string>
+</resources>

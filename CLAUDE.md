@@ -4,9 +4,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project state
 
-This repo holds the plan for a minimal Android app that plays one live radio station, RSG (SABC Afrikaans radio). The full spec is in `docs/SPEC.md`, and it is the source of truth for requirements. No Android project exists yet. When one is scaffolded, update this file with the real build, lint and test commands.
+A minimal Android app (Draadloos, package `house.ouwl.draadloos`) that plays one live radio station, RSG (SABC Afrikaans radio). `docs/SPEC.md` is the source of truth for requirements. `docs/PLAN.md` tracks delivery in iterations: tick its checkbox in the same commit that completes an item, and tick "Done when" boxes only after testing on a real phone.
 
-Stack: Kotlin, Jetpack Compose, Media3 (ExoPlayer + MediaSessionService), minSdk 26.
+Stack: Kotlin, Jetpack Compose, Media3 (ExoPlayer + MediaSessionService), minSdk 26, targetSdk 36, compileSdk 37. AGP 9 uses its built-in Kotlin support, so there is no separate `kotlin-android` plugin. Versions live in `gradle/libs.versions.toml`.
+
+## Commands
+
+```sh
+./gradlew assembleDebug   # APK at app/build/outputs/apk/debug/app-debug.apk
+./gradlew lint
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Run `./gradlew` as the entire Bash command, with no `cd`, `&&` or env prefix. It is excluded from the Claude Code sandbox only in that form, and `JAVA_HOME` comes from the local settings. CI (`.github/workflows/build.yml`) builds the debug APK on pushes to `main` and on PRs.
+
+## Layout
+
+- `playback/PlaybackService.kt` owns the ExoPlayer and the MediaSession. Everything else talks to it through a `MediaController`.
+- `playback/Station.kt` holds the stream URL and the station's `MediaItem` and metadata.
+- `MainActivity.kt` connects a `MediaController` in `onStart` and releases it in `onStop`. `ui/RadioScreen.kt` is the single screen.
 
 ## Constraints that span components
 
