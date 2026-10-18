@@ -59,4 +59,27 @@ class IcyTitleTest {
         assertThat(parse("rsg")).isNull()
         assertThat(parse(" RSG ")).isNull()
     }
+
+    @Test
+    fun leadingApostrophe_isKept() {
+        assertThat(parse("'n Brief vir Simone")).isEqualTo(NowPlaying(null, "'n Brief vir Simone"))
+        assertThat(parse("Koos - 'n Brief")).isEqualTo(NowPlaying("Koos", "'n Brief"))
+    }
+
+    @Test
+    fun quotesAroundAWholePart_areDropped() {
+        assertThat(parse("\"Artist\" - \"Song\"")).isEqualTo(NowPlaying("Artist", "Song"))
+        assertThat(parse("“Artist” - “Song”")).isEqualTo(NowPlaying("Artist", "Song"))
+    }
+
+    @Test
+    fun quotesInsideAPart_areKept() {
+        assertThat(parse("Artist - Say \"hi\" now")).isEqualTo(NowPlaying("Artist", "Say \"hi\" now"))
+    }
+
+    @Test
+    fun line_isArtistDashTitle_orJustTheTitle() {
+        assertThat(NowPlaying("A", "B").line).isEqualTo("A – B")
+        assertThat(NowPlaying(null, "B").line).isEqualTo("B")
+    }
 }

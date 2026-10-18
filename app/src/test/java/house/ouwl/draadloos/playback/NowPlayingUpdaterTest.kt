@@ -5,6 +5,7 @@ import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Metadata
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.extractor.metadata.icy.IcyHeaders
@@ -32,6 +33,9 @@ class NowPlayingUpdaterTest {
     private fun attached(playWhenReady: Boolean = true, current: MediaItem = item("RSG", "Radio Sonder Grense")) =
         FakeRadioPlayer(playWhenReady, Player.STATE_READY, current).also {
             updater.attach(it)
+            // SimpleBasePlayer reads its state on first use. Do that now, or a later moveTo()
+            // would be taken as the starting state and raise no events.
+            assertThat(it.playbackState).isEqualTo(Player.STATE_READY)
             it.commands.clear()
         }
 
@@ -172,5 +176,57 @@ class NowPlayingUpdaterTest {
         idle()
 
         assertThat(player.commands).containsExactly("play")
+    }
+
+    @Test
+    fun song_isMarkedSoTheUiCanTellItFromTheStation() {
+        val player = attached()
+
+        updater.onMetadata(icy("Kobus Human - Môre"))
+
+        assertThat(player.nowPlayingLine()).isEqualTo("Kobus Human – Môre")
+    }
+
+    @Test
+    fun streamError_putsTheStationBack_whileReconnecting() {
+        val player = attached(current = item("B", "A"))
+
+        player.moveTo(playbackState = Player.STATE_IDLE, error = PlaybackException("down", null, PlaybackException.ERROR_CODE_IO_UNSPECIFIED))
+        idle()
+
+        assertThat(player.commands).containsExactly("replaceMediaItem:RSG/Radio Sonder Grense")
+        assertThat(player.nowPlayingLine()).isNull()
+    }
+
+    @Test
+    fun streamEnding_putsTheStationBack() {
+        val player = attached(current = item("B", "A"))
+
+        player.moveTo(playbackState = Player.STATE_ENDED)
+        idle()
+
+        assertThat(player.commands).containsExactly("replaceMediaItem:RSG/Radio Sonder Grense")
+    }
+
+    @Test
+    fun connecting_keepsWhatIsShown() {
+        val player = attached(current = item("B", "A"))
+
+        player.moveTo(playbackState = Player.STATE_BUFFERING)
+        idle()
+
+        assertThat(player.commands).isEmpty()
+    }
+
+    @Test
+    fun replacement_dropsTheLiveConfigurationHlsAdds() {
+        val live = item("RSG", "Radio Sonder Grense").buildUpon()
+            .setLiveConfiguration(MediaItem.LiveConfiguration.Builder().setTargetOffsetMs(8_000).build())
+            .build()
+        val player = attached(current = live)
+
+        updater.onMetadata(icy("A - B"))
+
+        assertThat(player.currentMediaItem!!.liveConfiguration).isEqualTo(MediaItem.LiveConfiguration.UNSET)
     }
 }

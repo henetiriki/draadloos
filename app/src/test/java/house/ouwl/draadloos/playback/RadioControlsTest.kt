@@ -1,5 +1,6 @@
 package house.ouwl.draadloos.playback
 
+import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -62,41 +63,31 @@ class RadioControlsTest {
         assertThat(player.commands).containsExactly("play")
     }
 
-    private fun playerShowing(title: String?, artist: String?) = FakeRadioPlayer(
+    private fun playerShowing(line: String?) = FakeRadioPlayer(
         mediaItem = MediaItem.Builder()
             .setMediaId("rsg")
             .setMediaMetadata(
-                MediaMetadata.Builder().setTitle(title).setArtist(artist).setStation("RSG").build()
+                MediaMetadata.Builder()
+                    .setTitle("RSG")
+                    .setExtras(line?.let { Bundle().apply { putString(NOW_PLAYING_EXTRA, it) } })
+                    .build()
             )
             .build(),
     )
 
-    
-    fun nowPlayingLine_isArtistDashTitle() {
-        assertThat(playerShowing("Môre", "Kobus Human").nowPlayingLine("Radio Sonder Grense"))
-            .isEqualTo("Kobus Human – Môre")
-    }
-
-    
-    fun nowPlayingLine_isJustTheTitle_whenTheArtistIsTheTagline() {
-        assertThat(playerShowing("Nuus", "Radio Sonder Grense").nowPlayingLine("Radio Sonder Grense"))
-            .isEqualTo("Nuus")
-        assertThat(playerShowing("Nuus", null).nowPlayingLine("Radio Sonder Grense")).isEqualTo("Nuus")
-    }
-
-    
-    fun nowPlayingLine_isNull_forTheStationDefaults() {
-        assertThat(playerShowing("RSG", "Radio Sonder Grense").nowPlayingLine("Radio Sonder Grense")).isNull()
-        assertThat(playerShowing(null, null).nowPlayingLine("Radio Sonder Grense")).isNull()
+    @Test
+    fun nowPlayingLine_isTheMarkedSong() {
+        assertThat(playerShowing("Kobus Human – Môre").nowPlayingLine()).isEqualTo("Kobus Human – Môre")
     }
 
     @Test
-    fun nowPlayingLine_isNull_forAnEmptyTitle() {
-        assertThat(playerShowing("", "Kobus Human").nowPlayingLine("Radio Sonder Grense")).isNull()
+    fun nowPlayingLine_isNull_forTheStation() {
+        assertThat(playerShowing(null).nowPlayingLine()).isNull()
     }
 
     @Test
-    fun nowPlayingLine_withoutAStationName_stillShowsTheSong() {
+    fun nowPlayingLine_ignoresTitleAndArtistText() {
+        // A title that happens to differ from the station name is not a song unless marked.
         val player = FakeRadioPlayer(
             mediaItem = MediaItem.Builder()
                 .setMediaId("rsg")
@@ -104,11 +95,6 @@ class RadioControlsTest {
                 .build(),
         )
 
-        assertThat(player.nowPlayingLine("Radio Sonder Grense")).isEqualTo("Kobus Human – Môre")
-    }
-
-    @Test
-    fun nowPlayingLine_isJustTheTitle_whenTheArtistIsEmpty() {
-        assertThat(playerShowing("Nuus", "").nowPlayingLine("Radio Sonder Grense")).isEqualTo("Nuus")
+        assertThat(player.nowPlayingLine()).isNull()
     }
 }

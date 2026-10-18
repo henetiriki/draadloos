@@ -1,5 +1,6 @@
 package house.ouwl.draadloos.ui
 
+import android.os.Bundle
 import android.os.Looper
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -15,6 +16,7 @@ import androidx.media3.common.Player
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import house.ouwl.draadloos.playback.FakeRadioPlayer
+import house.ouwl.draadloos.playback.NOW_PLAYING_EXTRA
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -91,18 +93,21 @@ class RadioScreenTest {
         compose.onNodeWithText("Speel").assertExists()
     }
 
-    private fun songPlaying(title: String, artist: String) = FakeRadioPlayer(
+    private fun songPlaying(line: String?) = FakeRadioPlayer(
         mediaItem = MediaItem.Builder()
             .setMediaId("rsg")
             .setMediaMetadata(
-                MediaMetadata.Builder().setTitle(title).setArtist(artist).setStation("RSG").build()
+                MediaMetadata.Builder()
+                    .setTitle("RSG")
+                    .setExtras(line?.let { Bundle().apply { putString(NOW_PLAYING_EXTRA, it) } })
+                    .build()
             )
             .build(),
     )
 
     @Test
     fun showsTheSong_inPlaceOfTheTagline() {
-        compose.setContent { RadioScreen(songPlaying("Môre", "Kobus Human"), onToggle = {}) }
+        compose.setContent { RadioScreen(songPlaying("Kobus Human – Môre"), onToggle = {}) }
 
         compose.onNodeWithText("Kobus Human – Môre").assertExists()
         compose.onNodeWithText("Radio Sonder Grense").assertDoesNotExist()
@@ -110,15 +115,15 @@ class RadioScreenTest {
 
     @Test
     fun followsSongChanges_andReturnsToTheTagline() {
-        val player = songPlaying("RSG", "Radio Sonder Grense")
+        val player = songPlaying(null)
         compose.setContent { RadioScreen(player, onToggle = {}) }
         compose.onNodeWithText("Radio Sonder Grense").assertExists()
 
-        player.replaceMediaItem(0, songPlaying("Môre", "Kobus Human").currentMediaItem!!)
+        player.replaceMediaItem(0, songPlaying("Kobus Human – Môre").currentMediaItem!!)
         idleMainLooper()
         compose.onNodeWithText("Kobus Human – Môre").assertExists()
 
-        player.replaceMediaItem(0, songPlaying("RSG", "Radio Sonder Grense").currentMediaItem!!)
+        player.replaceMediaItem(0, songPlaying(null).currentMediaItem!!)
         idleMainLooper()
         compose.onNodeWithText("Radio Sonder Grense").assertExists()
     }

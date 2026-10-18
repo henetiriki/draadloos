@@ -47,13 +47,13 @@ fun RadioScreen(controller: Player?, onToggle: () -> Unit) {
     // Mirrors the session: "on" means playing or connecting; a failed stream reads as off.
     var isOn by remember(controller) { mutableStateOf(controller?.isOn == true) }
     val tagline = stringResource(R.string.station_tagline)
-    var nowPlaying by remember(controller) { mutableStateOf(controller?.nowPlayingLine(tagline)) }
+    var nowPlaying by remember(controller) { mutableStateOf(controller?.nowPlayingLine()) }
 
-    DisposableEffect(controller, tagline) {
+    DisposableEffect(controller) {
         val listener = object : Player.Listener {
             override fun onEvents(player: Player, events: Player.Events) {
                 isOn = player.isOn
-                nowPlaying = player.nowPlayingLine(tagline)
+                nowPlaying = player.nowPlayingLine()
             }
         }
         controller?.addListener(listener)
