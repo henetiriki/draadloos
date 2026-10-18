@@ -11,6 +11,10 @@
     <string name="status_connecting">Koppel aan RSG…</string>
     <string name="status_live">Regstreeks</string>
     <string name="now_playing_label">Nou op die lug</string>
+    <string name="widget_wide_label">RSG (breed)</string>
+    <string name="widget_wide_description">Speel of stop RSG met een tik.</string>
+    <string name="widget_small_label">RSG (klein)</string>
+    <string name="widget_small_description">Speel of stop RSG met een tik.</string>
     <string name="warning_title">Verbinding verloor</string>
     <string name="warning_body">Moenie bekommer nie, ons probeer self weer.</string>
     <plurals name="retry_countdown">

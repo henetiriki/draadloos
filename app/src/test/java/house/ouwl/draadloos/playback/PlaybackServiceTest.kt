@@ -87,6 +87,47 @@ class PlaybackServiceTest {
     }
 
     @Test
+    fun widgetPlay_startsTheRadio() {
+        val player = session()!!.player
+
+        service.onStartCommand(Intent(PlaybackService.ACTION_PLAY), 0, 1)
+
+        assertThat(player.playWhenReady).isTrue()
+    }
+
+    @Test
+    fun widgetPlay_whenAlreadyOn_doesNothingExtra() {
+        val player = session()!!.player
+        service.onStartCommand(Intent(PlaybackService.ACTION_PLAY), 0, 1)
+
+        service.onStartCommand(Intent(PlaybackService.ACTION_PLAY), 0, 2)
+
+        assertThat(player.playWhenReady).isTrue()
+    }
+
+    @Test
+    fun widgetStop_stopsTheRadio() {
+        val player = session()!!.player
+        service.onStartCommand(Intent(PlaybackService.ACTION_PLAY), 0, 1)
+
+        service.onStartCommand(Intent(PlaybackService.ACTION_STOP), 0, 2)
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(player.playWhenReady).isFalse()
+        assertThat(player.playbackState).isEqualTo(Player.STATE_IDLE)
+    }
+
+    @Test
+    fun otherIntents_leaveTheRadioAlone() {
+        val player = session()!!.player
+
+        service.onStartCommand(Intent("something.else"), 0, 1)
+        service.onStartCommand(null, 0, 2)
+
+        assertThat(player.playWhenReady).isFalse()
+    }
+
+    @Test
     fun mediaButtonReceiverIsDeclared() {
         val intent = Intent(Intent.ACTION_MEDIA_BUTTON).setPackage("house.ouwl.draadloos")
         val receivers = context.packageManager.queryBroadcastReceivers(intent, 0)

@@ -52,6 +52,7 @@ kover {
         filters {
             excludes {
                 classes("*.R", "*.R$*", "*.BuildConfig", "*ComposableSingletons*")
+                annotatedBy("house.ouwl.draadloos.widget.SessionOnly")
             }
         }
         // Coverage minimums for koverVerify, set to what the tests reach. Only ever raise them.
@@ -77,6 +78,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    implementation(libs.glance.appwidget)
+
     implementation(libs.media3.exoplayer)
     implementation(libs.media3.exoplayer.hls)
     implementation(libs.media3.session)
@@ -89,6 +92,7 @@ dependencies {
     testImplementation(platform(libs.androidx.compose.bom))
     testImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    testImplementation(libs.glance.appwidget.testing)
     testImplementation(libs.media3.test.utils)
     testImplementation(libs.media3.test.utils.robolectric)
 }

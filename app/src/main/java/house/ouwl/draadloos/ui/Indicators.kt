@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.NonRestartableComposable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -39,6 +40,7 @@ private fun animationsEnabled(): Boolean {
 
 /** A ring with a quarter arc that goes round once a second. */
 @Composable
+@NonRestartableComposable
 internal fun Spinner() {
     val angle = if (animationsEnabled()) {
         rememberInfiniteTransition(label = "spinner").animateFloat(
@@ -63,6 +65,7 @@ internal fun Spinner() {
 
 /** The red "live" dot; its opacity goes 1 → 0.35 → 1 over 1.6 seconds. */
 @Composable
+@NonRestartableComposable
 internal fun LiveDot() {
     val alpha = if (animationsEnabled()) {
         rememberInfiniteTransition(label = "live").animateFloat(
@@ -79,6 +82,7 @@ internal fun LiveDot() {
 
 /** A wifi symbol (dot and two arcs) struck through. */
 @Composable
+@NonRestartableComposable
 internal fun WifiOffIcon(size: Dp, color: Color) {
     Canvas(Modifier.size(size)) {
         val w = this.size.width
@@ -102,6 +106,7 @@ internal fun WifiOffIcon(size: Dp, color: Color) {
 
 /** ■ while the radio is on, ▶ while it is off, so the button never relies on colour alone. */
 @Composable
+@NonRestartableComposable
 internal fun ToggleIcon(on: Boolean, size: Dp, color: Color) {
     Canvas(Modifier.size(size)) {
         if (on) {
