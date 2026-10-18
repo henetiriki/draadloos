@@ -120,6 +120,32 @@ class LiveStreamTest {
 
         player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS)
         assertThat(player.commands).isEmpty()
+        pass(10_000)
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_NONE)
+
+        assertThat(player.commands).containsExactly("stop", "seekToDefaultPosition", "prepare").inOrder()
+    }
+
+    @Test
+    fun aShortChime_resumesFromTheBuffer() {
+        val player = attached(true, Player.STATE_READY)
+
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS)
+        pass(9_999)
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_NONE)
+
+        assertThat(player.commands).isEmpty()
+    }
+
+    @Test
+    fun suppressionCountsFromWhenItFirstStarted() {
+        val player = attached(true, Player.STATE_READY)
+
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_TRANSIENT_AUDIO_FOCUS_LOSS)
+        pass(6_000)
+        // Another reason replacing the first one is still the same gap in the audio.
+        player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_UNSUITABLE_AUDIO_OUTPUT)
+        pass(6_000)
         player.moveTo(suppressionReason = Player.PLAYBACK_SUPPRESSION_REASON_NONE)
 
         assertThat(player.commands).containsExactly("stop", "seekToDefaultPosition", "prepare").inOrder()

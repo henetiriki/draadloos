@@ -1,6 +1,5 @@
 package house.ouwl.draadloos.playback
 
-import android.os.Bundle
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
@@ -68,26 +67,14 @@ class RadioControlsTest {
         assertThat(player.commands).containsExactly("play")
     }
 
-    private fun playerShowing(line: String?) = FakeRadioPlayer(
-        mediaItem = MediaItem.Builder()
-            .setMediaId("rsg")
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle("RSG")
-                    .setExtras(line?.let { Bundle().apply { putString(NOW_PLAYING_EXTRA, it) } })
-                    .build()
-            )
-            .build(),
-    )
-
     @Test
     fun nowPlayingLine_isTheMarkedSong() {
-        assertThat(playerShowing("Kobus Human – Môre").nowPlayingLine()).isEqualTo("Kobus Human – Môre")
+        assertThat(FakeRadioPlayer.showing("Kobus Human – Môre").nowPlayingLine()).isEqualTo("Kobus Human – Môre")
     }
 
     @Test
     fun nowPlayingLine_isNull_forTheStation() {
-        assertThat(playerShowing(null).nowPlayingLine()).isNull()
+        assertThat(FakeRadioPlayer.showing(null).nowPlayingLine()).isNull()
     }
 
     @Test

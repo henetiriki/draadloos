@@ -1,8 +1,10 @@
 package house.ouwl.draadloos.playback
 
+import android.os.Bundle
 import android.os.Looper
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.SimpleBasePlayer
@@ -82,6 +84,21 @@ class FakeRadioPlayer(
         val metadata = mediaItems.single().mediaMetadata
         commands += "replaceMediaItem:${metadata.title}/${metadata.artist}"
         return Futures.immediateVoidFuture()
+    }
+
+    companion object {
+        /** A player whose item shows [line] as the song, or the station itself when null. */
+        fun showing(line: String?) = FakeRadioPlayer(
+            mediaItem = MediaItem.Builder()
+                .setMediaId("rsg")
+                .setMediaMetadata(
+                    MediaMetadata.Builder()
+                        .setTitle("RSG")
+                        .setExtras(line?.let { Bundle().apply { putString(NOW_PLAYING_EXTRA, it) } })
+                        .build()
+                )
+                .build(),
+        )
     }
 
     /** Moves the player to a new state on its own, as a stream error, end or focus change would. */

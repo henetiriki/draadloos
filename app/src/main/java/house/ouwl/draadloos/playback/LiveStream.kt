@@ -2,6 +2,7 @@ package house.ouwl.draadloos.playback
 
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -13,7 +14,7 @@ import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
 /**
  * Makes a [Player] behave like a radio rather than a podcast:
  *  - pausing stops the player and drops the connection, so playing again joins the live edge;
- *  - so does a call or another app taking the audio for a while, once it gives it back;
+ *  - so does a call or another app taking the audio for a while (not a short chime), once it gives it back;
  *  - a failed or dropped stream is retried forever with [ReconnectBackoff], always at the live edge;
  *  - after a few failures in a row it switches between the AAC stream and the HLS fallback,
  *    after the same backoff delay as any other retry.
@@ -30,7 +31,8 @@ class LiveStream(
 
     private lateinit var player: Player
     private var usingFallback = false
-    private var suppressed = false
+    // When the audio was taken from us, or null while we have it.
+    private var suppressedSince: Long? = null
 
     // Written on the main thread, read on ExoPlayer's playback thread, which may not touch the player.
     @Volatile
@@ -68,7 +70,7 @@ class LiveStream(
             // Pause means stop: close the connection, and start over on the AAC stream.
             mainHandler.removeCallbacksAndMessages(null)
             backoff.reset()
-            suppressed = false
+            suppressedSince = null
             player.stop()
             if (usingFallback) {
                 usingFallback = false
@@ -82,10 +84,13 @@ class LiveStream(
             // A call has the audio. The stream keeps buffering and would carry on from that
             // old audio afterwards, so remember to rejoin it live instead. Stopping now would
             // give the audio focus up, which ends the suppression straight away.
-            suppressed = true
-        } else if (suppressed) {
-            suppressed = false
-            if (player.playWhenReady) reconnectNow()
+            if (suppressedSince == null) suppressedSince = SystemClock.elapsedRealtime()
+        } else {
+            val since = suppressedSince ?: return
+            suppressedSince = null
+            // A short chime resumes from the buffer; rebuffering would cost more silence than it saves.
+            val long = SystemClock.elapsedRealtime() - since >= REJOIN_LIVE_AFTER_MS
+            if (long && player.playWhenReady) reconnectNow()
         }
     }
 
@@ -138,5 +143,8 @@ class LiveStream(
         // Effectively forever: at the 30s cap this is about a year.
         const val MAX_RETRIES = 1_000_000
         const val FAILURES_PER_SOURCE = 3
+
+        // Shorter than this, the buffered audio is still close enough to live.
+        const val REJOIN_LIVE_AFTER_MS = 10_000L
     }
 }

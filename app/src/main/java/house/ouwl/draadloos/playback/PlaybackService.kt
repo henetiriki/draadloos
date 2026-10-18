@@ -46,7 +46,7 @@ class PlaybackService : MediaSessionService() {
         liveStream.attach(player)
         NowPlayingUpdater(getString(R.string.station_name), getString(R.string.station_tagline)).attach(player)
 
-        mediaSession = MediaSession.Builder(this, player)
+        mediaSession = MediaSession.Builder(this, ReconnectingPlayer(player))
             .setCallback(RadioSessionCallback(station))
             .setSessionActivity(
                 PendingIntent.getActivity(

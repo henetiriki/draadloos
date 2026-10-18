@@ -1,6 +1,5 @@
 package house.ouwl.draadloos.ui
 
-import android.os.Bundle
 import android.os.Looper
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -10,13 +9,10 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.media3.common.MediaItem
-import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import house.ouwl.draadloos.playback.FakeRadioPlayer
-import house.ouwl.draadloos.playback.NOW_PLAYING_EXTRA
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -98,21 +94,9 @@ class RadioScreenTest {
         compose.onNodeWithText("Speel").assertExists()
     }
 
-    private fun songPlaying(line: String?) = FakeRadioPlayer(
-        mediaItem = MediaItem.Builder()
-            .setMediaId("rsg")
-            .setMediaMetadata(
-                MediaMetadata.Builder()
-                    .setTitle("RSG")
-                    .setExtras(line?.let { Bundle().apply { putString(NOW_PLAYING_EXTRA, it) } })
-                    .build()
-            )
-            .build(),
-    )
-
     @Test
     fun showsTheSong_inPlaceOfTheTagline() {
-        compose.setContent { RadioScreen(songPlaying("Kobus Human – Môre"), onToggle = {}) }
+        compose.setContent { RadioScreen(FakeRadioPlayer.showing("Kobus Human – Môre"), onToggle = {}) }
 
         compose.onNodeWithText("Kobus Human – Môre").assertExists()
         compose.onNodeWithText("Radio Sonder Grense").assertDoesNotExist()
@@ -120,15 +104,15 @@ class RadioScreenTest {
 
     @Test
     fun followsSongChanges_andReturnsToTheTagline() {
-        val player = songPlaying(null)
+        val player = FakeRadioPlayer.showing(null)
         compose.setContent { RadioScreen(player, onToggle = {}) }
         compose.onNodeWithText("Radio Sonder Grense").assertExists()
 
-        player.replaceMediaItem(0, songPlaying("Kobus Human – Môre").currentMediaItem!!)
+        player.replaceMediaItem(0, FakeRadioPlayer.showing("Kobus Human – Môre").currentMediaItem!!)
         idleMainLooper()
         compose.onNodeWithText("Kobus Human – Môre").assertExists()
 
-        player.replaceMediaItem(0, songPlaying(null).currentMediaItem!!)
+        player.replaceMediaItem(0, FakeRadioPlayer.showing(null).currentMediaItem!!)
         idleMainLooper()
         compose.onNodeWithText("Radio Sonder Grense").assertExists()
     }

@@ -48,7 +48,7 @@ class PlaybackServiceTest {
 
     @Test
     fun playerIsConfiguredForMusic() {
-        val player = session()!!.player as ExoPlayer
+        val player = session()!!.player
 
         assertThat(player.audioAttributes.usage).isEqualTo(C.USAGE_MEDIA)
         assertThat(player.audioAttributes.contentType).isEqualTo(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -104,7 +104,7 @@ class PlaybackServiceTest {
 
     @Test
     fun destroyReleasesPlayerAndSession() {
-        val player = session()!!.player as ExoPlayer
+        val player = (session()!!.player as ReconnectingPlayer).wrapped as ExoPlayer
 
         controller.destroy()
 
