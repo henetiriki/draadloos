@@ -6,8 +6,9 @@ This plan delivers the app in [SPEC.md](SPEC.md) in four iterations. Each iterat
 
 - Package name: `house.ouwl.draadloos`
 - App label: Draadloos
-- Station artwork: `radio.jpg` (supplied, used for now)
+- Station artwork: `radio.jpg` (supplied 980px original, used for now; it replaces the 240px `design/station_art.png` crop that DESIGN.md says to swap for the original)
 - Widget: Jetpack Glance
+- Typeface: Atkinson Hyperlegible (SIL OFL), bundled in `res/font/`
 
 ## Iteration 1: It plays
 
@@ -76,12 +77,14 @@ Done when:
 
 Goal: start the radio from the home screen.
 
-- [ ] 2x1 Glance widget with a play/stop toggle that shows the current state
+- [ ] 4x1 Glance widget with a play/stop toggle that shows the current state, laid out per [DESIGN.md](DESIGN.md) section 3
+- [ ] 1x1 Glance widget (toggle button with "RSG" label), same state and click behaviour as the 4x1
 - [ ] Play uses a foreground-service start; stop uses a normal service call or broadcast (Android 12+ rules)
 - [ ] Widget updates whenever playback state changes
 - [ ] Tests for the widget's state and click actions
 - [ ] UI checks for the user: font scaling, contrast, TalkBack labels
-- [ ] Simple Afrikaans status line (e.g. "Koppel tans…" / "Speel")
+- [ ] Afrikaans status pill per DESIGN.md (Gestop / Koppel aan RSG… / Regstreeks / retry countdown)
+- [ ] Update the main screen layout to match [DESIGN.md](DESIGN.md): design tokens (colours, Atkinson Hyperlegible, sizes), station art, status pill, now-playing card, reconnect warning panel, 200dp button pinned to the bottom
 - [ ] Launcher icon: replace the 980×980 `radio.jpg` with properly sized assets (adaptive foreground per density or a vector, content inside the 66dp safe zone), and fix the icon spilling past the round mask on the launch splash (Android 12+)
 - [ ] Shrink `radio.jpg` (also the session artwork and the in-app image) to a sensible size, e.g. 512px
 - [ ] Finish the README: installing from the CI artifact, allowing unknown sources, adding the widget
