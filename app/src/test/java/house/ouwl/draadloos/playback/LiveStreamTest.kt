@@ -427,6 +427,20 @@ class LiveStreamTest {
     }
 
     @Test
+    fun aLoadErrorLandingAfterTheUserStopped_isNotAnnounced() {
+        val player = attached(true, Player.STATE_BUFFERING)
+        player.pause()
+        pass(0)
+        retryTimes.clear()
+
+        // ExoPlayer's loader thread was still busy when the user pressed Stop.
+        loadFails()
+        pass(0)
+
+        assertThat(retryTimes).isEmpty()
+    }
+
+    @Test
     fun stopping_clearsTheAnnouncement() {
         val player = attached(true, Player.STATE_IDLE)
         player.moveTo(error = streamError())

@@ -199,6 +199,38 @@ class RadioScreenTest {
     }
 
     @Test
+    fun stoppingWhilePlaying_showsSpeelAtOnce() {
+        val player = FakeRadioPlayer(true, Player.STATE_READY)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { RadioScreen(player, retryAt = null, onToggle = {}, clock = { clockMs }) }
+        compose.mainClock.advanceTimeByFrame()
+        compose.onNodeWithText("Stop").assertExists()
+
+        player.moveTo(playWhenReady = false)
+        shadowOf(Looper.getMainLooper()).idle()
+        compose.mainClock.advanceTimeByFrame()
+
+        // No grace period: Stop must not linger on a radio that has stopped.
+        compose.onNodeWithText("Speel").assertExists()
+        compose.onNodeWithText("Gestop").assertExists()
+    }
+
+    @Test
+    fun aNewRetryTime_isCountedFromTheCurrentClock() {
+        var retryAt by mutableStateOf<Long?>(null)
+        compose.setContent {
+            RadioScreen(FakeRadioPlayer(true, Player.STATE_BUFFERING), retryAt = retryAt, onToggle = {}, clock = { clockMs })
+        }
+
+        // Time has moved on with nothing ticking, then a retry time arrives.
+        clockMs = 50_000
+        retryAt = 52_000
+        compose.waitForIdle()
+
+        compose.onNodeWithText("Probeer weer oor 2 sekondes…").assertExists()
+    }
+
+    @Test
     fun aNewTitleByTheSameArtist_updatesTheCard() {
         val player = FakeRadioPlayer.showing("Môre", "Kobus Human").also { it.moveTo(true, Player.STATE_READY) }
         compose.setContent { RadioScreen(player, retryAt = null, onToggle = {}) }

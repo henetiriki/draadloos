@@ -125,10 +125,11 @@ class LiveStream(
     }
 
     // Always through the main handler: load errors arrive on ExoPlayer's playback thread, and
-    // posting every update keeps them in order.
+    // posting every update keeps them in order. A load error can still land just after the user
+    // stopped, so check on the main thread that the radio is meant to be on before announcing.
     private fun publishRetry(delayMs: Long) {
         val at = SystemClock.elapsedRealtime() + delayMs
-        mainHandler.post { onRetryAt(at) }
+        mainHandler.post { if (player.playWhenReady) onRetryAt(at) }
     }
 
     private fun publishNoRetry() {

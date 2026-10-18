@@ -12,7 +12,9 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
+import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionToken
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -110,6 +112,34 @@ class MainActivityTest {
             idle()
 
             compose.onNodeWithText("Verbinding verloor").assertExists()
+        }
+    }
+
+    @Test
+    fun extrasFromAnotherController_areIgnored() {
+        bindRealPlaybackService()
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            idle()
+            compose.onNodeWithText("Speel").performClick()
+            idle()
+            // A controller the activity isn't using, as a released one would be.
+            val other = MediaController.Builder(
+                app,
+                SessionToken(app, ComponentName(app, PlaybackService::class.java)),
+            ).buildAsync()
+            idle()
+
+            scenario.onActivity {
+                it.extrasListener.onExtrasChanged(
+                    other.get(),
+                    retryExtras(SystemClock.elapsedRealtime() + 60_000),
+                )
+            }
+            idle()
+
+            compose.onNodeWithText("Verbinding verloor").assertDoesNotExist()
+            MediaController.releaseFuture(other)
         }
     }
 

@@ -96,6 +96,7 @@ Rules:
 
 - The button toggles between exactly two labels. If the user has asked for audio (playing, connecting or reconnecting), it shows **Stop**. Otherwise it shows **Speel**.
 - Speel and Stop differ in colour (yellow / white), icon (▶ / ■) and word all at once. Never rely on colour alone.
+- Until the app has connected to the playback service (a moment after launch), the button is dimmed (`Accent` at 40%) and does nothing, so it doesn't look pressable when it isn't.
 - Pressing Stop stops and releases the stream (per the project spec), and the UI goes straight to Gestop.
 - Reconnecting: dim the station art to 55% opacity. Count the retry down live, once a second.
 - After buffering, briefly show Koppel tans (debounce about 300ms so it doesn't flicker).

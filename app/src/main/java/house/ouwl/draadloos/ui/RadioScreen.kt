@@ -28,8 +28,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -98,24 +99,32 @@ fun RadioScreen(
         onDispose { controller?.removeListener(listener) }
     }
 
-    // Ticks once a second while a retry is ahead, which also moves the countdown on.
-    var now by remember { mutableLongStateOf(clock()) }
+    // While a retry is ahead, a tick every second recomposes with a fresh clock reading. The
+    // reading is taken during composition, so a new retry time never meets a stale "now".
+    var tick by remember { mutableIntStateOf(0) }
     LaunchedEffect(retryAt) {
-        now = clock()
-        while (retryAt != null && now < retryAt) {
+        while (retryAt != null && clock() < retryAt) {
             delay(1_000)
-            now = clock()
+            tick++
         }
     }
+    val now = remember(retryAt, tick) { clock() }
     val remainingMs = if (retryAt == null) 0 else retryAt - now
     val waiting = remainingMs > 0
     val wanted = if (target == RadioState.Connecting && waiting) RadioState.Reconnecting else target
 
-    var state by remember(controller) { mutableStateOf(wanted) }
+    // Playing drops to "connecting" only after a short grace period. Every other change shows
+    // at once, so the button never lags behind what the radio is doing.
+    var shownBefore by remember(controller) { mutableStateOf(wanted) }
+    var graceOver by remember(wanted) { mutableStateOf(false) }
+    val dropped = wanted == RadioState.Connecting || wanted == RadioState.Reconnecting
+    val state = if (dropped && shownBefore == RadioState.Playing && !graceOver) RadioState.Playing else wanted
+    SideEffect { shownBefore = state }
     LaunchedEffect(wanted) {
-        val dropped = wanted == RadioState.Connecting || wanted == RadioState.Reconnecting
-        if (state == RadioState.Playing && dropped) delay(CONNECTING_DEBOUNCE_MS)
-        state = wanted
+        if (dropped) {
+            delay(CONNECTING_DEBOUNCE_MS)
+            graceOver = true
+        }
     }
 
     val compact = state == RadioState.Playing || state == RadioState.Reconnecting
@@ -304,7 +313,7 @@ private fun ToggleButton(on: Boolean, enabled: Boolean, onClick: () -> Unit) {
         colors = ButtonDefaults.buttonColors(
             containerColor = if (on) StopButton else Accent,
             contentColor = OnButton,
-            disabledContainerColor = Accent,
+            disabledContainerColor = AccentDisabled,
             disabledContentColor = OnButton,
         ),
         modifier = Modifier

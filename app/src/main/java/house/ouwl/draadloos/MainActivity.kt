@@ -27,6 +27,17 @@ class MainActivity : ComponentActivity() {
     private var retryAt by mutableStateOf<Long?>(null)
     private var controllerFuture: ListenableFuture<MediaController>? = null
 
+    /**
+     * The service sets session extras while it waits to reconnect. A callback queued by a
+     * controller that has since been released must not bring back a retry time, so only the
+     * current controller counts; its initial extras are read when it connects.
+     */
+    internal val extrasListener = object : MediaController.Listener {
+        override fun onExtrasChanged(controller: MediaController, extras: Bundle) {
+            if (controller === this@MainActivity.controller) retryAt = extras.retryAt()
+        }
+    }
+
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
@@ -47,12 +58,7 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
         val future = MediaController.Builder(this, token)
-            .setListener(object : MediaController.Listener {
-                // The service sets these while it waits to reconnect.
-                override fun onExtrasChanged(controller: MediaController, extras: Bundle) {
-                    retryAt = extras.retryAt()
-                }
-            })
+            .setListener(extrasListener)
             .buildAsync()
         controllerFuture = future
         future.addListener(
