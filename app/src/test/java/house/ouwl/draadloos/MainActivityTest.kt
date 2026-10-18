@@ -5,18 +5,22 @@ import android.app.Application
 import android.content.ComponentName
 import android.content.Intent
 import android.os.Looper
+import android.os.SystemClock
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
+import androidx.media3.session.MediaController
 import androidx.media3.session.MediaSessionService
+import androidx.media3.session.SessionToken
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import house.ouwl.draadloos.playback.PlaybackService
+import house.ouwl.draadloos.playback.retryExtras
 import org.junit.After
 import org.junit.Rule
 import org.junit.Test
@@ -91,6 +95,51 @@ class MainActivityTest {
 
             val player = playback.get().sessions.single().player
             assertThat(player.playWhenReady).isTrue()
+        }
+    }
+
+    @Test
+    fun showsTheWarning_whenTheServiceAnnouncesARetry() {
+        val playback = bindRealPlaybackService()
+
+        ActivityScenario.launch(MainActivity::class.java).use {
+            idle()
+            compose.onNodeWithText("Speel").performClick()
+            idle()
+
+            playback.get().sessions.single()
+                .setSessionExtras(retryExtras(SystemClock.elapsedRealtime() + 60_000))
+            idle()
+
+            compose.onNodeWithText("Verbinding verloor").assertExists()
+        }
+    }
+
+    @Test
+    fun extrasFromAnotherController_areIgnored() {
+        bindRealPlaybackService()
+
+        ActivityScenario.launch(MainActivity::class.java).use { scenario ->
+            idle()
+            compose.onNodeWithText("Speel").performClick()
+            idle()
+            // A controller the activity isn't using, as a released one would be.
+            val other = MediaController.Builder(
+                app,
+                SessionToken(app, ComponentName(app, PlaybackService::class.java)),
+            ).buildAsync()
+            idle()
+
+            scenario.onActivity {
+                it.extrasListener.onExtrasChanged(
+                    other.get(),
+                    retryExtras(SystemClock.elapsedRealtime() + 60_000),
+                )
+            }
+            idle()
+
+            compose.onNodeWithText("Verbinding verloor").assertDoesNotExist()
+            MediaController.releaseFuture(other)
         }
     }
 

@@ -51,6 +51,8 @@ These rules come from the spec. They are easy to break when you only look at one
 
 The UI is for an older, non-technical user. It has one very large play/stop button, large text and high contrast. Labels are in Afrikaans: "Speel" / "Stop". Keep it that simple and don't add settings, lists or extra screens.
 
+`docs/DESIGN.md` is the visual spec for the main screen (four states) and the 1x1 and 4x1 widgets: colour tokens, Atkinson Hyperlegible (bundled in `res/font/`, licence in `licenses/`), sizes and state mapping. Reference screenshots are in `design/`. Where a screenshot and DESIGN.md disagree, DESIGN.md wins.
+
 ## Deliverables beyond the app
 
 - A README covering the build and sideloading the APK.

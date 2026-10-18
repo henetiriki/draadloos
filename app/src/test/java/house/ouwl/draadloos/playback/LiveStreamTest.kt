@@ -2,6 +2,7 @@ package house.ouwl.draadloos.playback
 
 import android.net.Uri
 import android.os.Looper
+import android.os.SystemClock
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
@@ -26,7 +27,13 @@ import org.robolectric.Shadows.shadowOf
 class LiveStreamTest {
 
     private val backoff = ReconnectBackoff()
-    private val liveStream = LiveStream(MediaItem.fromUri("aac"), MediaItem.fromUri("hls"), backoff)
+    private val retryTimes = mutableListOf<Long?>()
+    private val liveStream = LiveStream(
+        MediaItem.fromUri("aac"),
+        MediaItem.fromUri("hls"),
+        backoff,
+        onRetryAt = { retryTimes += it },
+    )
     private val policy = liveStream.loadErrorPolicy
 
     private fun attached(playWhenReady: Boolean, state: Int): FakeRadioPlayer =
@@ -349,5 +356,100 @@ class LiveStreamTest {
         pass(60_000)
 
         assertThat(player.commands).isEmpty()
+    }
+
+    @Test
+    fun streamError_announcesWhenTheRetryStarts() {
+        val player = attached(true, Player.STATE_READY)
+
+        player.moveTo(playbackState = Player.STATE_IDLE, error = streamError())
+        pass(0)
+
+        assertThat(retryTimes).containsExactly(SystemClock.elapsedRealtime() + 2_000)
+    }
+
+    @Test
+    fun theRetryStarting_clearsTheAnnouncement() {
+        val player = attached(true, Player.STATE_READY)
+        player.moveTo(playbackState = Player.STATE_IDLE, error = streamError())
+
+        pass(2_000)
+
+        assertThat(retryTimes.last()).isNull()
+        assertThat(retryTimes).hasSize(2)
+    }
+
+    @Test
+    fun aSourceSwitchStarting_clearsTheAnnouncement() {
+        attached(true, Player.STATE_BUFFERING)
+        repeat(3) { loadFails() }
+        pass(0)
+        assertThat(retryTimes.last()).isNotNull()
+
+        pass(8_000)
+
+        assertThat(retryTimes.last()).isNull()
+    }
+
+    @Test
+    fun loadErrors_announceTheirRetry_whileConnecting() {
+        attached(true, Player.STATE_BUFFERING)
+
+        loadFails()
+        loadFails()
+        pass(0)
+
+        assertThat(retryTimes).containsExactly(
+            SystemClock.elapsedRealtime() + 2_000,
+            SystemClock.elapsedRealtime() + 4_000,
+        ).inOrder()
+    }
+
+    @Test
+    fun aLoadFailingWhileAudioPlays_isNotAnnounced() {
+        attached(true, Player.STATE_READY)
+
+        loadFails()
+        pass(0)
+
+        assertThat(retryTimes).isEmpty()
+    }
+
+    @Test
+    fun playingAgain_clearsTheAnnouncement() {
+        val player = attached(true, Player.STATE_BUFFERING)
+        loadFails()
+
+        player.moveTo(playbackState = Player.STATE_READY)
+        pass(0)
+
+        assertThat(retryTimes.last()).isNull()
+    }
+
+    @Test
+    fun aLoadErrorLandingAfterTheUserStopped_isNotAnnounced() {
+        val player = attached(true, Player.STATE_BUFFERING)
+        player.pause()
+        pass(0)
+        retryTimes.clear()
+
+        // ExoPlayer's loader thread was still busy when the user pressed Stop.
+        loadFails()
+        pass(0)
+
+        assertThat(retryTimes).isEmpty()
+    }
+
+    @Test
+    fun stopping_clearsTheAnnouncement() {
+        val player = attached(true, Player.STATE_IDLE)
+        player.moveTo(error = streamError())
+        pass(0)
+        assertThat(retryTimes.last()).isNotNull()
+
+        player.pause()
+        pass(0)
+
+        assertThat(retryTimes.last()).isNull()
     }
 }

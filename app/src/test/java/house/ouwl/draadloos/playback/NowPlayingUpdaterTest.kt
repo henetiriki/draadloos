@@ -188,6 +188,24 @@ class NowPlayingUpdaterTest {
     }
 
     @Test
+    fun song_carriesArtistAndTitleSeparately() {
+        val player = attached()
+
+        updater.onMetadata(icy("Kobus Human - Môre"))
+
+        assertThat(player.nowPlaying()).isEqualTo(NowPlaying("Kobus Human", "Môre"))
+    }
+
+    @Test
+    fun titleOnlySong_hasNoArtist() {
+        val player = attached()
+
+        updater.onMetadata(icy("Nuus om sewe"))
+
+        assertThat(player.nowPlaying()).isEqualTo(NowPlaying(null, "Nuus om sewe"))
+    }
+
+    @Test
     fun streamError_putsTheStationBack_whileReconnecting() {
         val player = attached(current = item("B", "A"))
 

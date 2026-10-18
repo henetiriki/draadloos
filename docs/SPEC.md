@@ -16,7 +16,8 @@ https://playerservices.streamtheworld.com/api/livestream-redirect/RSGAAC.aac
 - Audio focus + becoming-noisy handling (pause on headphone unplug).
 - Auto-reconnect with backoff on network errors.
 - UI built for an older, non-technical user: one huge play/stop button, large text, high contrast, Afrikaans labels ("Speel" / "Stop").
-- A 1x1 or 2x1 home-screen widget with a play/stop toggle that reflects current state. Mind Android 12+ foreground-service start rules from widget clicks: only use startForegroundService when starting playback.
+- UI and widget visuals follow [DESIGN.md](DESIGN.md) (screenshots in `design/`); where they disagree, DESIGN.md wins.
+- A 1x1 and a 4x1 home-screen widget with a play/stop toggle that reflects current state. Mind Android 12+ foreground-service start rules from widget clicks: only use startForegroundService when starting playback.
 - Foreground service type mediaPlayback, POST_NOTIFICATIONS permission request on 13+.
 - Show "now playing" (artist – title) in the notification and lock screen. Try ICY metadata first (the mount has Shoutcast v1 metadata enabled; ExoPlayer exposes it as IcyInfo via Player.Listener.onMetadata). Fall back to Triton's SSE sideband (_SBM suffix) only if ICY doesn't come through. Keep "RSG" as the fallback title when no metadata is available.
 - README covering the build and sideloading the APK; plus a GitHub Actions workflow that builds a debug APK as an artifact.

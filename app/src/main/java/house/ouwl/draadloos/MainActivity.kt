@@ -17,13 +17,26 @@ import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
 import com.google.common.util.concurrent.ListenableFuture
 import house.ouwl.draadloos.playback.PlaybackService
+import house.ouwl.draadloos.playback.retryAt
 import house.ouwl.draadloos.playback.toggle
 import house.ouwl.draadloos.ui.RadioScreen
 
 class MainActivity : ComponentActivity() {
 
     private var controller by mutableStateOf<MediaController?>(null)
+    private var retryAt by mutableStateOf<Long?>(null)
     private var controllerFuture: ListenableFuture<MediaController>? = null
+
+    /**
+     * The service sets session extras while it waits to reconnect. A callback queued by a
+     * controller that has since been released must not bring back a retry time, so only the
+     * current controller counts; its initial extras are read when it connects.
+     */
+    internal val extrasListener = object : MediaController.Listener {
+        override fun onExtrasChanged(controller: MediaController, extras: Bundle) {
+            if (controller === this@MainActivity.controller) retryAt = extras.retryAt()
+        }
+    }
 
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -35,6 +48,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             RadioScreen(
                 controller = controller,
+                retryAt = retryAt,
                 onToggle = { controller?.toggle() },
             )
         }
@@ -43,12 +57,15 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
-        val future = MediaController.Builder(this, token).buildAsync()
+        val future = MediaController.Builder(this, token)
+            .setListener(extrasListener)
+            .buildAsync()
         controllerFuture = future
         future.addListener(
             {
                 if (controllerFuture === future) {
                     controller = runCatching { future.get() }.getOrNull()
+                    retryAt = controller?.let { it.sessionExtras.retryAt() }
                 }
             },
             ContextCompat.getMainExecutor(this),
@@ -60,6 +77,7 @@ class MainActivity : ComponentActivity() {
         controllerFuture?.let(MediaController::releaseFuture)
         controllerFuture = null
         controller = null
+        retryAt = null
         super.onStop()
     }
 

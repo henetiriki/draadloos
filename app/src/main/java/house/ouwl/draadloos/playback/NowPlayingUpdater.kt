@@ -14,6 +14,9 @@ import androidx.media3.extractor.metadata.icy.IcyInfo
  */
 internal const val NOW_PLAYING_EXTRA = "house.ouwl.draadloos.NOW_PLAYING"
 
+/** The song's artist, set next to [NOW_PLAYING_EXTRA] and absent when the stream gave only a title. */
+internal const val NOW_PLAYING_ARTIST_EXTRA = "house.ouwl.draadloos.NOW_PLAYING_ARTIST"
+
 /**
  * Puts the song from the stream's ICY metadata on the session's media item, so the
  * notification, lock screen and app all show "artist – title". ExoPlayer prefers the media
@@ -69,7 +72,12 @@ class NowPlayingUpdater(
                     metadata.buildUpon()
                         .setTitle(title)
                         .setArtist(artist)
-                        .setExtras(song?.let { Bundle().apply { putString(NOW_PLAYING_EXTRA, it.line) } })
+                        .setExtras(song?.let {
+                            Bundle().apply {
+                                putString(NOW_PLAYING_EXTRA, it.line)
+                                it.artist?.let { artist -> putString(NOW_PLAYING_ARTIST_EXTRA, artist) }
+                            }
+                        })
                         .build()
                 )
                 .build(),

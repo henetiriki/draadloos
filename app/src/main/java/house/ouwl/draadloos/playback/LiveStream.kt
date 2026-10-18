@@ -17,7 +17,9 @@ import androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy
  *  - so does a call or another app taking the audio for a while (not a short chime), once it gives it back;
  *  - a failed or dropped stream is retried forever with [ReconnectBackoff], always at the live edge;
  *  - after a few failures in a row it switches between the AAC stream and the HLS fallback,
- *    after the same backoff delay as any other retry.
+ *    after the same backoff delay as any other retry;
+ *  - while it waits to retry, [onRetryAt] gets the time the attempt starts (null once it starts,
+ *    succeeds or the user stops), so the app can count down.
  *
  * Build the player with [loadErrorPolicy], then call [attach].
  */
@@ -27,6 +29,7 @@ class LiveStream(
     private val fallback: MediaItem,
     private val backoff: ReconnectBackoff = ReconnectBackoff(),
     private val mainHandler: Handler = Handler(Looper.getMainLooper()),
+    private val onRetryAt: (Long?) -> Unit = {},
 ) : Player.Listener {
 
     private lateinit var player: Player
@@ -49,6 +52,7 @@ class LiveStream(
         override fun getRetryDelayMsFor(loadErrorInfo: LoadErrorHandlingPolicy.LoadErrorInfo): Long {
             // A load that fails while audio is still playing (one lost segment, say) isn't an outage.
             val retry = backoff.nextRetry(startOver = ready)
+            if (!ready) publishRetry(retry.delayMs)
             if (retry.failures % FAILURES_PER_SOURCE == 0) mainHandler.postDelayed(switchSource, retry.delayMs)
             return retry.delayMs
         }
@@ -69,6 +73,7 @@ class LiveStream(
         if (!playWhenReady) {
             // Pause means stop: close the connection, and start over on the AAC stream.
             mainHandler.removeCallbacksAndMessages(null)
+            publishNoRetry()
             backoff.reset()
             suppressedSince = null
             player.stop()
@@ -99,6 +104,7 @@ class LiveStream(
         when (playbackState) {
             Player.STATE_READY -> {
                 backoff.reset()
+                publishNoRetry()
                 // It recovered by itself, so a switch planned for the outage isn't needed.
                 mainHandler.removeCallbacks(switchSource)
             }
@@ -115,6 +121,19 @@ class LiveStream(
         // Every third failure the retry is a switch to the other source.
         val next = if (retry.failures % FAILURES_PER_SOURCE == 0) switchSource else reconnect
         mainHandler.postDelayed(next, retry.delayMs)
+        publishRetry(retry.delayMs)
+    }
+
+    // Always through the main handler: load errors arrive on ExoPlayer's playback thread, and
+    // posting every update keeps them in order. A load error can still land just after the user
+    // stopped, so check on the main thread that the radio is meant to be on before announcing.
+    private fun publishRetry(delayMs: Long) {
+        val at = SystemClock.elapsedRealtime() + delayMs
+        mainHandler.post { if (player.playWhenReady) onRetryAt(at) }
+    }
+
+    private fun publishNoRetry() {
+        mainHandler.post { onRetryAt(null) }
     }
 
     /** Drops the old connection and rejoins at the live edge, not where the player left off. */
@@ -126,11 +145,13 @@ class LiveStream(
 
     // Stored, not method references, so removeCallbacks can match them.
     private val reconnect = Runnable {
+        publishNoRetry()
         val idle = player.playbackState == Player.STATE_IDLE || player.playbackState == Player.STATE_ENDED
         if (player.playWhenReady && idle) reconnectNow()
     }
 
     private val switchSource = Runnable {
+        publishNoRetry()
         if (player.playWhenReady) {
             mainHandler.removeCallbacks(reconnect)
             usingFallback = !usingFallback

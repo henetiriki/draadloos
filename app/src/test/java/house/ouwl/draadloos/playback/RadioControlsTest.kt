@@ -78,6 +78,28 @@ class RadioControlsTest {
     }
 
     @Test
+    fun nowPlaying_splitsArtistAndTitle() {
+        val song = FakeRadioPlayer.showing("Môre", "Kobus Human").nowPlaying()
+
+        assertThat(song).isEqualTo(NowPlaying("Kobus Human", "Môre"))
+    }
+
+    @Test
+    fun nowPlaying_hasNoArtist_whenTheStreamGaveOnlyATitle() {
+        assertThat(FakeRadioPlayer.showing("Nuus om sewe").nowPlaying()).isEqualTo(NowPlaying(null, "Nuus om sewe"))
+    }
+
+    @Test
+    fun nowPlaying_isNull_forTheStation() {
+        assertThat(FakeRadioPlayer.showing(null).nowPlaying()).isNull()
+    }
+
+    @Test
+    fun nowPlaying_isNull_withoutAnyExtras() {
+        assertThat(FakeRadioPlayer().nowPlaying()).isNull()
+    }
+
+    @Test
     fun nowPlayingLine_ignoresTitleAndArtistText() {
         // A title that happens to differ from the station name is not a song unless marked.
         val player = FakeRadioPlayer(
