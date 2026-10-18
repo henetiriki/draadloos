@@ -60,7 +60,7 @@ kover {
         verify {
             rule {
                 minBound(100, CoverageUnit.LINE)
-                minBound(89, CoverageUnit.BRANCH)
+                minBound(90, CoverageUnit.BRANCH)
             }
         }
     }
@@ -78,6 +78,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
 
     implementation(libs.media3.exoplayer)
+    implementation(libs.media3.exoplayer.hls)
     implementation(libs.media3.session)
 
     testImplementation(libs.junit)

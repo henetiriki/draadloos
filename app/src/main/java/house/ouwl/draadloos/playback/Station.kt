@@ -16,12 +16,16 @@ object Station {
     const val STREAM_URL =
         "https://playerservices.streamtheworld.com/api/livestream-redirect/RSGAAC.aac"
 
+    /** The same mount as HLS, used when the AAC stream keeps failing. */
+    const val FALLBACK_URL =
+        "https://playerservices.streamtheworld.com/api/livestream-redirect/RSGAAC.m3u8"
+
     private const val MEDIA_ID = "rsg"
 
-    fun mediaItem(context: Context): MediaItem =
+    fun mediaItem(context: Context, streamUrl: String = STREAM_URL): MediaItem =
         MediaItem.Builder()
             .setMediaId(MEDIA_ID)
-            .setUri(STREAM_URL)
+            .setUri(streamUrl)
             .setMediaMetadata(
                 MediaMetadata.Builder()
                     .setTitle(context.getString(R.string.station_name))
