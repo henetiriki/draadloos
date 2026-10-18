@@ -61,11 +61,12 @@ Done when:
 
 Goal: show "artist – title" in the notification and on the lock screen.
 
-- [ ] Check that ICY metadata arrives from this stream as `IcyInfo`, and see what the titles look like
-- [ ] Parse ICY titles into artist and title and push them to the session without interrupting playback
-- [ ] Triton SSE sideband (`_SBM`), built only if the check shows ICY doesn't arrive
-- [ ] Fall back to "RSG" when there's no metadata; clear stale metadata on stop
-- [ ] Tests for ICY title parsing (including odd formats seen on the stream)
+- [ ] Check that ICY metadata arrives from this stream as `IcyInfo`, and see what the titles look like. Sunday-evening probe: ICY is on (`icy-metaint: 16000`) but no `StreamTitle` came in 6 minutes on `RSGAAC` or 90 seconds on `RSGAAC_SC`, and Triton's now-playing list is empty. Re-check on a phone during a daytime music show.
+- [x] Parse ICY titles into artist and title and push them to the session without interrupting playback
+- [ ] Triton SSE sideband (`_SBM`), built only if the check shows ICY doesn't arrive (deferred until the daytime check; `_SBM` needs a matching open `_SC?sbmid=` stream)
+- [x] Fall back to "RSG" when there's no metadata; clear stale metadata on stop
+- [x] Tests for ICY title parsing (the formats seen on the stream so far: none, so common Shoutcast ones)
+- [x] Show the song on the in-app screen under "RSG", falling back to "Radio Sonder Grense"
 
 Done when:
 
@@ -81,6 +82,8 @@ Goal: start the radio from the home screen.
 - [ ] Tests for the widget's state and click actions
 - [ ] UI checks for the user: font scaling, contrast, TalkBack labels
 - [ ] Simple Afrikaans status line (e.g. "Koppel tans…" / "Speel")
+- [ ] Launcher icon: replace the 980×980 `radio.jpg` with properly sized assets (adaptive foreground per density or a vector, content inside the 66dp safe zone), and fix the icon spilling past the round mask on the launch splash (Android 12+)
+- [ ] Shrink `radio.jpg` (also the session artwork and the in-app image) to a sensible size, e.g. 512px
 - [ ] Finish the README: installing from the CI artifact, allowing unknown sources, adding the widget
 
 Done when:

@@ -28,11 +28,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import house.ouwl.draadloos.R
 import house.ouwl.draadloos.playback.isOn
+import house.ouwl.draadloos.playback.nowPlayingLine
 
 // High contrast for an older user: black background, bright yellow and white.
 private val Background = Color(0xFF000000)
@@ -42,13 +44,16 @@ private val StopColour = Color(0xFFFF5A3C)
 
 @Composable
 fun RadioScreen(controller: Player?, onToggle: () -> Unit) {
-    // Mirrors the session: "on" means playing or connecting; a failed stream reads as off.
+    // Mirrors the session: "on" means playing, connecting or reconnecting.
     var isOn by remember(controller) { mutableStateOf(controller?.isOn == true) }
+    val tagline = stringResource(R.string.station_tagline)
+    var nowPlaying by remember(controller) { mutableStateOf(controller?.nowPlayingLine()) }
 
     DisposableEffect(controller) {
         val listener = object : Player.Listener {
             override fun onEvents(player: Player, events: Player.Events) {
                 isOn = player.isOn
+                nowPlaying = player.nowPlayingLine()
             }
         }
         controller?.addListener(listener)
@@ -77,10 +82,12 @@ fun RadioScreen(controller: Player?, onToggle: () -> Unit) {
             fontWeight = FontWeight.Bold,
         )
         Text(
-            text = stringResource(R.string.station_tagline),
+            text = nowPlaying ?: tagline,
             color = Foreground,
             fontSize = 28.sp,
             textAlign = TextAlign.Center,
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis,
         )
         Spacer(Modifier.height(40.dp))
         Button(

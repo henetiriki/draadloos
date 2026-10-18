@@ -21,12 +21,12 @@ class RadioSessionCallback(private val station: MediaItem) : MediaSession.Callba
         session: MediaSession,
         controller: MediaSession.ControllerInfo,
     ): ListenableFuture<MediaSession.ConnectionResult> {
-        // Start from the defaults, which depend on whether the controller is trusted.
-        val defaults = MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller).build()
         return Futures.immediateFuture(
             MediaSession.ConnectionResult.AcceptedResultBuilder(session, controller)
                 .setAvailablePlayerCommands(
-                    defaults.availablePlayerCommands.buildUpon().removeAll(*SEEK_COMMANDS).build()
+                    MediaSession.ConnectionResult.DEFAULT_PLAYER_COMMANDS.buildUpon()
+                        .removeAll(*SEEK_COMMANDS)
+                        .build()
                 )
                 .build()
         )

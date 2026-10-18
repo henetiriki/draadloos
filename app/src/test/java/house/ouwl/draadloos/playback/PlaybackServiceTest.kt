@@ -48,7 +48,7 @@ class PlaybackServiceTest {
 
     @Test
     fun playerIsConfiguredForMusic() {
-        val player = session()!!.player as ExoPlayer
+        val player = session()!!.player
 
         assertThat(player.audioAttributes.usage).isEqualTo(C.USAGE_MEDIA)
         assertThat(player.audioAttributes.contentType).isEqualTo(C.AUDIO_CONTENT_TYPE_MUSIC)
@@ -65,6 +65,25 @@ class PlaybackServiceTest {
 
         assertThat(player.playbackState).isEqualTo(Player.STATE_IDLE)
         assertThat(player.playWhenReady).isFalse()
+    }
+
+    @Test
+    fun stopping_clearsAStaleSong() {
+        val player = session()!!.player
+        val station = player.currentMediaItem!!
+        player.replaceMediaItem(
+            0,
+            station.buildUpon()
+                .setMediaMetadata(station.mediaMetadata.buildUpon().setTitle("Môre").setArtist("Kobus Human").build())
+                .build(),
+        )
+        player.play()
+
+        player.pause()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(player.mediaMetadata.title.toString()).isEqualTo("RSG")
+        assertThat(player.mediaMetadata.artist.toString()).isEqualTo("Radio Sonder Grense")
     }
 
     @Test
@@ -85,7 +104,7 @@ class PlaybackServiceTest {
 
     @Test
     fun destroyReleasesPlayerAndSession() {
-        val player = session()!!.player as ExoPlayer
+        val player = (session()!!.player as ReconnectingPlayer).wrapped as ExoPlayer
 
         controller.destroy()
 

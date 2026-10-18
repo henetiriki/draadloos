@@ -68,8 +68,13 @@ class RadioScreenTest {
         idleMainLooper()
         compose.onNodeWithText("Stop").assertExists()
 
-        // A stream error drops to idle with playWhenReady still set: the button offers Speel.
+        // A stream error drops to idle with playWhenReady still set. The radio keeps
+        // reconnecting, so the button keeps offering Stop.
         player.moveTo(playbackState = Player.STATE_IDLE)
+        idleMainLooper()
+        compose.onNodeWithText("Stop").assertExists()
+
+        player.moveTo(playWhenReady = false)
         idleMainLooper()
         compose.onNodeWithText("Speel").assertExists()
     }
@@ -87,6 +92,29 @@ class RadioScreenTest {
         idleMainLooper()
 
         compose.onNodeWithText("Speel").assertExists()
+    }
+
+    @Test
+    fun showsTheSong_inPlaceOfTheTagline() {
+        compose.setContent { RadioScreen(FakeRadioPlayer.showing("Kobus Human – Môre"), onToggle = {}) }
+
+        compose.onNodeWithText("Kobus Human – Môre").assertExists()
+        compose.onNodeWithText("Radio Sonder Grense").assertDoesNotExist()
+    }
+
+    @Test
+    fun followsSongChanges_andReturnsToTheTagline() {
+        val player = FakeRadioPlayer.showing(null)
+        compose.setContent { RadioScreen(player, onToggle = {}) }
+        compose.onNodeWithText("Radio Sonder Grense").assertExists()
+
+        player.replaceMediaItem(0, FakeRadioPlayer.showing("Kobus Human – Môre").currentMediaItem!!)
+        idleMainLooper()
+        compose.onNodeWithText("Kobus Human – Môre").assertExists()
+
+        player.replaceMediaItem(0, FakeRadioPlayer.showing(null).currentMediaItem!!)
+        idleMainLooper()
+        compose.onNodeWithText("Radio Sonder Grense").assertExists()
     }
 
     private fun idleMainLooper() {
