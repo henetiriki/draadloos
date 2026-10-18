@@ -26,6 +26,7 @@ Goal: tap a big button, RSG plays, and it keeps playing with the screen off.
 Done when:
 
 - [ ] The APK plays RSG with the screen off
+- [ ] Playback continues while using the phone normally (leaving the app, browsing, other apps)
 - [ ] Controls show in the pull-down and on the lock screen
 - [ ] Unplugging headphones pauses playback
 
