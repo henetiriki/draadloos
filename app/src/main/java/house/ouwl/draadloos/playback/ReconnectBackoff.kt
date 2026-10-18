@@ -29,8 +29,6 @@ class ReconnectBackoff {
         return Retry(delay, failures)
     }
 
-    fun nextDelayMs(): Long = nextRetry().delayMs
-
     @Synchronized
     fun reset() {
         failures = 0

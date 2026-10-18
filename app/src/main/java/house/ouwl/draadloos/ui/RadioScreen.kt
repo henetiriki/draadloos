@@ -44,7 +44,7 @@ private val StopColour = Color(0xFFFF5A3C)
 
 @Composable
 fun RadioScreen(controller: Player?, onToggle: () -> Unit) {
-    // Mirrors the session: "on" means playing or connecting; a failed stream reads as off.
+    // Mirrors the session: "on" means playing, connecting or reconnecting.
     var isOn by remember(controller) { mutableStateOf(controller?.isOn == true) }
     val tagline = stringResource(R.string.station_tagline)
     var nowPlaying by remember(controller) { mutableStateOf(controller?.nowPlayingLine()) }
