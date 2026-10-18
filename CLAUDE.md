@@ -28,12 +28,15 @@ Run `./gradlew` as the entire Bash command, with no `cd`, `&&` or env prefix. It
 - `playback/FakeRadioPlayer` is a `SimpleBasePlayer` whose state tests set directly. Use it for anything that takes a `Player`.
 - `MainActivityTest` binds a real in-process `PlaybackService` with `ShadowApplication.setComponentNameAndServiceForBindService`. Tests that don't need playback must call `declareComponentUnbindable` instead, because Robolectric's default fake binding crashes Media3.
 - Use the `v2` Compose test rules (`androidx.compose.ui.test.junit4.v2`); the old ones are deprecated.
+- Widgets are tested with `runGlanceAppWidgetUnitTest` (`glance-appwidget-testing`) against each widget's `content`. Don't drive a real widget update in a test: Glance draws it in a session that deadlocks a Robolectric test on a second update, and `ShadowAppWidgetManager.createWidget` fires a fake broadcast that leaks an exception into later tests. The one-line `provideGlance` of each widget is marked `@SessionOnly` and excluded from coverage in `app/build.gradle.kts` for that reason; keep any logic out of it.
+- Small drawing-only composables are `@NonRestartableComposable`, which avoids the "skip if unchanged" branches that tests can't reach and that would otherwise eat into the branch minimum.
 
 ## Layout
 
 - `playback/PlaybackService.kt` owns the ExoPlayer and the MediaSession. Everything else talks to it through a `MediaController`.
 - `playback/Station.kt` holds the stream URL and the station's `MediaItem` and metadata.
 - `MainActivity.kt` connects a `MediaController` in `onStart` and releases it in `onStop`. `ui/RadioScreen.kt` is the single screen.
+- `widget/` holds the two Glance widgets (4x1 and 1x1). `RadioWidgetState` is the state they draw; `WidgetSync` listens to the session's player in `PlaybackService` and redraws them. The widgets send `PlaybackService.ACTION_PLAY` (with `startForegroundService`) and `ACTION_STOP` (plain `startService`); the service handles both in `onStartCommand`.
 
 ## Constraints that span components
 

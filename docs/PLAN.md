@@ -77,18 +77,20 @@ Done when:
 
 Goal: start the radio from the home screen.
 
-- [ ] 4x1 Glance widget with a play/stop toggle that shows the current state, laid out per [DESIGN.md](DESIGN.md) section 3
-- [ ] 1x1 Glance widget (toggle button with "RSG" label), same state and click behaviour as the 4x1
-- [ ] Play uses a foreground-service start; stop uses a normal service call or broadcast (Android 12+ rules)
-- [ ] Widget updates whenever playback state changes
-- [ ] Tests for the widget's state and click actions
-- [ ] UI checks for the user: font scaling, contrast, TalkBack labels
-- [ ] Afrikaans status pill per DESIGN.md (Gestop / Koppel aan RSG… / Regstreeks / retry countdown)
+- [x] 4x1 Glance widget with a play/stop toggle that shows the current state, laid out per [DESIGN.md](DESIGN.md) section 3
+- [x] 1x1 Glance widget (toggle button with "RSG" label), same state and click behaviour as the 4x1
+- [x] Play uses a foreground-service start; stop uses a normal service call or broadcast (Android 12+ rules)
+- [x] Widget updates whenever playback state changes
+- [x] Tests for the widget's state and click actions
+- [x] UI checks for the user, automated: font scaling (1.3x, all four states), contrast (WCAG AA for every token pair) and TalkBack labels ("Speel RSG" / "Stop RSG")
+- [ ] Try TalkBack and a large font size on a real phone
+- [x] Afrikaans status pill per DESIGN.md (Gestop / Koppel aan RSG… / Regstreeks / retry countdown)
 - [x] Update the main screen layout to match [DESIGN.md](DESIGN.md): design tokens (colours, Atkinson Hyperlegible, sizes), station art, status pill, now-playing card, 200dp button pinned to the bottom (Gestop, Koppel tans and Speel states)
 - [x] "Verbinding verloor" state: warning panel, dimmed art and a live retry countdown (the service has to publish its reconnect state to the session first)
-- [ ] Launcher icon: replace the 980×980 `radio.jpg` with properly sized assets (adaptive foreground per density or a vector, content inside the 66dp safe zone), and fix the icon spilling past the round mask on the launch splash (Android 12+)
-- [ ] Shrink `radio.jpg` (also the session artwork and the in-app image) to a sensible size, e.g. 512px
-- [ ] Finish the README: installing from the CI artifact, allowing unknown sources, adding the widget
+- [x] Launcher icon: adaptive icon with a transparent foreground cut from the artwork, scaled to sit inside the 66dp safe zone, on a white background
+- [ ] Check the launch splash on an Android 12+ phone: the icon should stay inside the round mask
+- [x] Shrink `radio.jpg` (also the session artwork and the in-app image) to 512px
+- [x] Finish the README: installing from the CI artifact, allowing unknown sources, adding the widget
 
 Done when:
 
