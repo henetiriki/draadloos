@@ -15,13 +15,13 @@ import com.google.common.util.concurrent.ListenableFuture
 class FakeRadioPlayer(
     private var playWhenReady: Boolean = false,
     private var playbackState: Int = Player.STATE_IDLE,
+    private var mediaItem: MediaItem? = MediaItem.Builder().setMediaId("rsg").build(),
 ) : SimpleBasePlayer(Looper.getMainLooper()) {
 
     val commands = mutableListOf<String>()
 
     private var playWhenReadyReason = Player.PLAY_WHEN_READY_CHANGE_REASON_USER_REQUEST
     private var error: PlaybackException? = null
-    private var mediaItem: MediaItem = MediaItem.Builder().setMediaId("rsg").build()
 
     override fun getState(): State =
         State.Builder()
@@ -30,7 +30,9 @@ class FakeRadioPlayer(
             .setPlaybackState(playbackState)
             .setPlayerError(error)
             // A non-idle state needs a playlist.
-            .setPlaylist(listOf(MediaItemData.Builder("rsg").setMediaItem(mediaItem).build()))
+            .setPlaylist(
+                listOfNotNull(mediaItem).map { MediaItemData.Builder("rsg").setMediaItem(it).build() }
+            )
             .build()
 
     override fun handleSetPlayWhenReady(playWhenReady: Boolean): ListenableFuture<*> {
@@ -59,7 +61,18 @@ class FakeRadioPlayer(
         startPositionMs: Long,
     ): ListenableFuture<*> {
         mediaItem = mediaItems.single()
-        commands += "setMediaItem:${mediaItem.localConfiguration?.uri}"
+        commands += "setMediaItem:${mediaItems.single().localConfiguration?.uri}"
+        return Futures.immediateVoidFuture()
+    }
+
+    override fun handleReplaceMediaItems(
+        fromIndex: Int,
+        toIndex: Int,
+        mediaItems: List<MediaItem>,
+    ): ListenableFuture<*> {
+        mediaItem = mediaItems.single()
+        val metadata = mediaItems.single().mediaMetadata
+        commands += "replaceMediaItem:${metadata.title}/${metadata.artist}"
         return Futures.immediateVoidFuture()
     }
 

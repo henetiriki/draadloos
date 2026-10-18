@@ -68,6 +68,25 @@ class PlaybackServiceTest {
     }
 
     @Test
+    fun stopping_clearsAStaleSong() {
+        val player = session()!!.player
+        val station = player.currentMediaItem!!
+        player.replaceMediaItem(
+            0,
+            station.buildUpon()
+                .setMediaMetadata(station.mediaMetadata.buildUpon().setTitle("Môre").setArtist("Kobus Human").build())
+                .build(),
+        )
+        player.play()
+
+        player.pause()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(player.mediaMetadata.title.toString()).isEqualTo("RSG")
+        assertThat(player.mediaMetadata.artist.toString()).isEqualTo("Radio Sonder Grense")
+    }
+
+    @Test
     fun mediaButtonReceiverIsDeclared() {
         val intent = Intent(Intent.ACTION_MEDIA_BUTTON).setPackage("house.ouwl.draadloos")
         val receivers = context.packageManager.queryBroadcastReceivers(intent, 0)

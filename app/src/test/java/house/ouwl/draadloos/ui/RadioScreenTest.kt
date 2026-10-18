@@ -9,6 +9,8 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
@@ -87,6 +89,38 @@ class RadioScreenTest {
         idleMainLooper()
 
         compose.onNodeWithText("Speel").assertExists()
+    }
+
+    private fun songPlaying(title: String, artist: String) = FakeRadioPlayer(
+        mediaItem = MediaItem.Builder()
+            .setMediaId("rsg")
+            .setMediaMetadata(
+                MediaMetadata.Builder().setTitle(title).setArtist(artist).setStation("RSG").build()
+            )
+            .build(),
+    )
+
+    @Test
+    fun showsTheSong_inPlaceOfTheTagline() {
+        compose.setContent { RadioScreen(songPlaying("Môre", "Kobus Human"), onToggle = {}) }
+
+        compose.onNodeWithText("Kobus Human – Môre").assertExists()
+        compose.onNodeWithText("Radio Sonder Grense").assertDoesNotExist()
+    }
+
+    @Test
+    fun followsSongChanges_andReturnsToTheTagline() {
+        val player = songPlaying("RSG", "Radio Sonder Grense")
+        compose.setContent { RadioScreen(player, onToggle = {}) }
+        compose.onNodeWithText("Radio Sonder Grense").assertExists()
+
+        player.replaceMediaItem(0, songPlaying("Môre", "Kobus Human").currentMediaItem!!)
+        idleMainLooper()
+        compose.onNodeWithText("Kobus Human – Môre").assertExists()
+
+        player.replaceMediaItem(0, songPlaying("RSG", "Radio Sonder Grense").currentMediaItem!!)
+        idleMainLooper()
+        compose.onNodeWithText("Radio Sonder Grense").assertExists()
     }
 
     private fun idleMainLooper() {

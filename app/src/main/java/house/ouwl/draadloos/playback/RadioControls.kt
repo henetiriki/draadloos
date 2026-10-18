@@ -11,6 +11,18 @@ val Player.isOn: Boolean
         playbackState != Player.STATE_IDLE &&
         playbackState != Player.STATE_ENDED
 
+/**
+ * "artist – title" while a song is on, null otherwise. Between songs the session carries
+ * the station's own defaults (title is the station name, artist is [tagline]), which are
+ * not a song; a song without an artist also carries the tagline as its artist.
+ */
+fun Player.nowPlayingLine(tagline: String): String? {
+    val title = mediaMetadata.title?.toString()
+    if (title.isNullOrEmpty() || title == mediaMetadata.station?.toString()) return null
+    val artist = mediaMetadata.artist?.toString()
+    return if (artist.isNullOrEmpty() || artist == tagline) title else "$artist – $title"
+}
+
 fun Player.toggle() {
     if (isOn) {
         pause()

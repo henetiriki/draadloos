@@ -11,6 +11,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import house.ouwl.draadloos.MainActivity
+import house.ouwl.draadloos.R
 
 /**
  * Owns the player and the media session. Running as a mediaPlayback foreground service
@@ -43,6 +44,7 @@ class PlaybackService : MediaSessionService() {
             .build()
         // Not prepared here: the stream only connects once the user presses play.
         liveStream.attach(player)
+        NowPlayingUpdater(getString(R.string.station_name), getString(R.string.station_tagline)).attach(player)
 
         mediaSession = MediaSession.Builder(this, player)
             .setCallback(RadioSessionCallback(station))
