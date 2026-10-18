@@ -14,7 +14,7 @@ This plan delivers the app in [SPEC.md](SPEC.md) in four iterations. Each iterat
 Goal: tap a big button, RSG plays, and it keeps playing with the screen off.
 
 - [x] Scaffold the Gradle project (Kotlin, Compose, Media3, minSdk 26, version catalog)
-- [ ] GitHub Actions workflow that builds the debug APK and uploads it as an artifact
+- [x] GitHub Actions workflow that builds the debug APK and uploads it as an artifact
 - [x] MediaSessionService + ExoPlayer playing the redirect stream URL (ExoPlayer follows the redirect)
 - [x] Fixed metadata: title "RSG", artist "Radio Sonder Grense", station artwork
 - [x] Foreground service type `mediaPlayback`
