@@ -1,15 +1,18 @@
 package house.ouwl.draadloos.ui
 
 import android.os.Looper
+import android.provider.Settings
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.media3.common.Player
+import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
 import house.ouwl.draadloos.playback.FakeRadioPlayer
@@ -25,12 +28,13 @@ class RadioScreenTest {
     val compose = createComposeRule()
 
     @Test
-    fun withoutController_showsDisabledPlay() {
+    fun withoutController_showsDisabledPlayAndTheStopped() {
         compose.setContent { RadioScreen(controller = null, onToggle = {}) }
 
         compose.onNodeWithText("Speel").assertIsNotEnabled()
         compose.onNodeWithText("RSG").assertExists()
         compose.onNodeWithText("Radio Sonder Grense").assertExists()
+        compose.onNodeWithText("Gestop").assertExists()
     }
 
     @Test
@@ -38,13 +42,25 @@ class RadioScreenTest {
         compose.setContent { RadioScreen(FakeRadioPlayer(false, Player.STATE_IDLE), onToggle = {}) }
 
         compose.onNodeWithText("Speel").assertIsEnabled()
+        compose.onNodeWithContentDescription("Speel RSG").assertExists()
+        compose.onNodeWithText("Gestop").assertExists()
     }
 
     @Test
-    fun whenOn_showsStop() {
+    fun whenConnecting_showsStopAndTheConnectingStatus() {
+        compose.setContent { RadioScreen(FakeRadioPlayer(true, Player.STATE_BUFFERING), onToggle = {}) }
+
+        compose.onNodeWithText("Stop").assertIsEnabled()
+        compose.onNodeWithContentDescription("Stop RSG").assertExists()
+        compose.onNodeWithText("Koppel aan RSG…").assertExists()
+    }
+
+    @Test
+    fun whenPlaying_showsStopAndRegstreeks() {
         compose.setContent { RadioScreen(FakeRadioPlayer(true, Player.STATE_READY), onToggle = {}) }
 
         compose.onNodeWithText("Stop").assertIsEnabled()
+        compose.onNodeWithText("Regstreeks").assertExists()
     }
 
     @Test
@@ -67,16 +83,49 @@ class RadioScreenTest {
         player.moveTo(playWhenReady = true, playbackState = Player.STATE_READY)
         idleMainLooper()
         compose.onNodeWithText("Stop").assertExists()
+        compose.onNodeWithText("Regstreeks").assertExists()
 
         // A stream error drops to idle with playWhenReady still set. The radio keeps
         // reconnecting, so the button keeps offering Stop.
         player.moveTo(playbackState = Player.STATE_IDLE)
         idleMainLooper()
+        compose.mainClock.advanceTimeBy(1_000)
         compose.onNodeWithText("Stop").assertExists()
+        compose.onNodeWithText("Koppel aan RSG…").assertExists()
 
         player.moveTo(playWhenReady = false)
         idleMainLooper()
         compose.onNodeWithText("Speel").assertExists()
+        compose.onNodeWithText("Gestop").assertExists()
+    }
+
+    @Test
+    fun aShortRebuffer_doesNotFlashTheConnectingStatus() {
+        val player = FakeRadioPlayer(true, Player.STATE_READY)
+        compose.setContent { RadioScreen(player, onToggle = {}) }
+
+        player.moveTo(playbackState = Player.STATE_BUFFERING)
+        idleMainLooper()
+        compose.mainClock.advanceTimeBy(100)
+        compose.onNodeWithText("Regstreeks").assertExists()
+
+        player.moveTo(playbackState = Player.STATE_READY)
+        idleMainLooper()
+        compose.mainClock.advanceTimeBy(1_000)
+        compose.onNodeWithText("Regstreeks").assertExists()
+        compose.onNodeWithText("Koppel aan RSG…").assertDoesNotExist()
+    }
+
+    @Test
+    fun aLongerRebuffer_showsTheConnectingStatus() {
+        val player = FakeRadioPlayer(true, Player.STATE_READY)
+        compose.setContent { RadioScreen(player, onToggle = {}) }
+
+        player.moveTo(playbackState = Player.STATE_BUFFERING)
+        idleMainLooper()
+        compose.mainClock.advanceTimeBy(1_000)
+
+        compose.onNodeWithText("Koppel aan RSG…").assertExists()
     }
 
     @Test
@@ -95,26 +144,72 @@ class RadioScreenTest {
     }
 
     @Test
-    fun showsTheSong_inPlaceOfTheTagline() {
-        compose.setContent { RadioScreen(FakeRadioPlayer.showing("Kobus Human – Môre"), onToggle = {}) }
+    fun playingASong_showsItInTheCard() {
+        compose.setContent {
+            RadioScreen(FakeRadioPlayer.showing("Môre", "Kobus Human").also { it.moveTo(true, Player.STATE_READY) }, onToggle = {})
+        }
 
-        compose.onNodeWithText("Kobus Human – Môre").assertExists()
-        compose.onNodeWithText("Radio Sonder Grense").assertDoesNotExist()
+        compose.onNodeWithText("Nou op die lug").assertExists()
+        compose.onNodeWithText("Kobus Human").assertExists()
+        compose.onNodeWithText("Môre").assertExists()
+        // The station block stays as it is: the song is in the card, not the tagline.
+        compose.onNodeWithText("Radio Sonder Grense").assertExists()
     }
 
     @Test
-    fun followsSongChanges_andReturnsToTheTagline() {
-        val player = FakeRadioPlayer.showing(null)
-        compose.setContent { RadioScreen(player, onToggle = {}) }
-        compose.onNodeWithText("Radio Sonder Grense").assertExists()
+    fun aTitleWithoutAnArtist_hidesTheArtistLine() {
+        compose.setContent {
+            RadioScreen(FakeRadioPlayer.showing("Nuus om sewe").also { it.moveTo(true, Player.STATE_READY) }, onToggle = {})
+        }
 
-        player.replaceMediaItem(0, FakeRadioPlayer.showing("Kobus Human – Môre").currentMediaItem!!)
+        compose.onNodeWithText("Nuus om sewe").assertExists()
+        compose.onNodeWithText("Nou op die lug").assertExists()
+    }
+
+    @Test
+    fun withoutASong_hidesTheCard() {
+        compose.setContent {
+            RadioScreen(FakeRadioPlayer.showing(null).also { it.moveTo(true, Player.STATE_READY) }, onToggle = {})
+        }
+
+        compose.onNodeWithText("Regstreeks").assertExists()
+        compose.onNodeWithText("Nou op die lug").assertDoesNotExist()
+    }
+
+    @Test
+    fun aSongWhileStopped_isNotShown() {
+        compose.setContent { RadioScreen(FakeRadioPlayer.showing("Môre", "Kobus Human"), onToggle = {}) }
+
+        compose.onNodeWithText("Nou op die lug").assertDoesNotExist()
+    }
+
+    @Test
+    fun followsSongChanges_andHidesTheCardAgain() {
+        val player = FakeRadioPlayer.showing(null).also { it.moveTo(true, Player.STATE_READY) }
+        compose.setContent { RadioScreen(player, onToggle = {}) }
+        compose.onNodeWithText("Nou op die lug").assertDoesNotExist()
+
+        player.replaceMediaItem(0, FakeRadioPlayer.showing("Môre", "Kobus Human").currentMediaItem!!)
         idleMainLooper()
-        compose.onNodeWithText("Kobus Human – Môre").assertExists()
+        compose.onNodeWithText("Môre").assertExists()
 
         player.replaceMediaItem(0, FakeRadioPlayer.showing(null).currentMediaItem!!)
         idleMainLooper()
-        compose.onNodeWithText("Radio Sonder Grense").assertExists()
+        compose.onNodeWithText("Nou op die lug").assertDoesNotExist()
+    }
+
+    @Test
+    fun withAnimationsOff_theStatusStillShows() {
+        val resolver = ApplicationProvider.getApplicationContext<android.content.Context>().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        val player = FakeRadioPlayer(true, Player.STATE_BUFFERING)
+        compose.setContent { RadioScreen(player, onToggle = {}) }
+        compose.onNodeWithText("Koppel aan RSG…").assertExists()
+
+        player.moveTo(playbackState = Player.STATE_READY)
+        idleMainLooper()
+
+        compose.onNodeWithText("Regstreeks").assertExists()
     }
 
     private fun idleMainLooper() {

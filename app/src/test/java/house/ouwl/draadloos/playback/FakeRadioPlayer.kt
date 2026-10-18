@@ -87,14 +87,21 @@ class FakeRadioPlayer(
     }
 
     companion object {
-        /** A player whose item shows [line] as the song, or the station itself when null. */
-        fun showing(line: String?) = FakeRadioPlayer(
+        /** A player whose item shows [title] (by [artist], if given) as the song, or the station itself when null. */
+        fun showing(title: String?, artist: String? = null) = FakeRadioPlayer(
             mediaItem = MediaItem.Builder()
                 .setMediaId("rsg")
                 .setMediaMetadata(
                     MediaMetadata.Builder()
-                        .setTitle("RSG")
-                        .setExtras(line?.let { Bundle().apply { putString(NOW_PLAYING_EXTRA, it) } })
+                        .setTitle(title ?: "RSG")
+                        .setExtras(
+                            title?.let {
+                                Bundle().apply {
+                                    putString(NOW_PLAYING_EXTRA, NowPlaying(artist, it).line)
+                                    artist?.let { a -> putString(NOW_PLAYING_ARTIST_EXTRA, a) }
+                                }
+                            }
+                        )
                         .build()
                 )
                 .build(),

@@ -84,7 +84,8 @@ Goal: start the radio from the home screen.
 - [ ] Tests for the widget's state and click actions
 - [ ] UI checks for the user: font scaling, contrast, TalkBack labels
 - [ ] Afrikaans status pill per DESIGN.md (Gestop / Koppel aan RSG… / Regstreeks / retry countdown)
-- [ ] Update the main screen layout to match [DESIGN.md](DESIGN.md): design tokens (colours, Atkinson Hyperlegible, sizes), station art, status pill, now-playing card, reconnect warning panel, 200dp button pinned to the bottom
+- [x] Update the main screen layout to match [DESIGN.md](DESIGN.md): design tokens (colours, Atkinson Hyperlegible, sizes), station art, status pill, now-playing card, 200dp button pinned to the bottom (Gestop, Koppel tans and Speel states)
+- [ ] "Verbinding verloor" state: warning panel, dimmed art and a live retry countdown (the service has to publish its reconnect state to the session first)
 - [ ] Launcher icon: replace the 980×980 `radio.jpg` with properly sized assets (adaptive foreground per density or a vector, content inside the 66dp safe zone), and fix the icon spilling past the round mask on the launch splash (Android 12+)
 - [ ] Shrink `radio.jpg` (also the session artwork and the in-app image) to a sensible size, e.g. 512px
 - [ ] Finish the README: installing from the CI artifact, allowing unknown sources, adding the widget
