@@ -1,3 +1,5 @@
+import kotlinx.kover.gradle.plugin.dsl.CoverageUnit
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -34,6 +36,14 @@ android {
     testOptions {
         // Robolectric needs the merged resources (strings, drawables) on the test classpath.
         unitTests.isIncludeAndroidResources = true
+        unitTests.all {
+            // Robolectric reaches into FileDescriptor internals and loads a native runtime,
+            // both of which newer JDKs (25+) lock down by default.
+            it.jvmArgs(
+                "--add-exports", "java.base/jdk.internal.access=ALL-UNNAMED",
+                "--enable-native-access=ALL-UNNAMED",
+            )
+        }
     }
 }
 
@@ -44,10 +54,13 @@ kover {
                 classes("*.R", "*.R$*", "*.BuildConfig", "*ComposableSingletons*")
             }
         }
-        // Line coverage minimum for koverVerify. Only ever raise it.
+        // Coverage minimums for koverVerify, set to what the tests reach. Only ever raise them.
+        // The uncovered branches are defensive null checks and a stale-connection guard
+        // that Robolectric can't reach.
         verify {
             rule {
-                minBound(90)
+                minBound(100, CoverageUnit.LINE)
+                minBound(89, CoverageUnit.BRANCH)
             }
         }
     }

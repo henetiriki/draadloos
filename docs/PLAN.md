@@ -35,7 +35,7 @@ Done when:
 Goal: automated tests for all app code, a coverage minimum that only goes up, and a CI check that must pass before merging.
 
 - [x] Test setup: JUnit, Robolectric, Compose UI testing, Media3 test utilities, Kover coverage with a minimum
-- [ ] Tests for `RadioControls`, `Station`, `RadioScreen`, `PlaybackService` and `MainActivity`
+- [x] Tests for `RadioControls`, `Station`, `RadioScreen`, `PlaybackService` and `MainActivity`
 - [ ] CI `test` job running the tests and the coverage check on every PR
 - [ ] `test` made a required check on `main` (repo setting, done by the owner)
 
