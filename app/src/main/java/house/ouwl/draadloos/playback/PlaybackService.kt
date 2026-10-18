@@ -2,9 +2,12 @@ package house.ouwl.draadloos.playback
 
 import android.app.PendingIntent
 import android.content.Intent
+import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import house.ouwl.draadloos.MainActivity
@@ -13,13 +16,21 @@ import house.ouwl.draadloos.MainActivity
  * Owns the player and the media session. Running as a mediaPlayback foreground service
  * keeps the radio going with the screen off and while other apps are in use.
  */
+@OptIn(UnstableApi::class)
 class PlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
+    private var liveStream: LiveStream? = null
 
     override fun onCreate() {
         super.onCreate()
+        val station = Station.mediaItem(this)
+        val liveStream = LiveStream(station, Station.mediaItem(this, Station.FALLBACK_URL))
+        this.liveStream = liveStream
         val player = ExoPlayer.Builder(this)
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(this).setLoadErrorHandlingPolicy(liveStream.loadErrorPolicy)
+            )
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -31,9 +42,10 @@ class PlaybackService : MediaSessionService() {
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         // Not prepared here: the stream only connects once the user presses play.
-        player.setMediaItem(Station.mediaItem(this))
+        liveStream.attach(player)
 
         mediaSession = MediaSession.Builder(this, player)
+            .setCallback(RadioSessionCallback(station))
             .setSessionActivity(
                 PendingIntent.getActivity(
                     this,
@@ -49,6 +61,8 @@ class PlaybackService : MediaSessionService() {
         mediaSession
 
     override fun onDestroy() {
+        liveStream?.release()
+        liveStream = null
         mediaSession?.run {
             player.release()
             release()

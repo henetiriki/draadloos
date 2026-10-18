@@ -1,6 +1,10 @@
 package house.ouwl.draadloos.playback
 
+import android.content.Context
+import android.content.Intent
 import android.os.Bundle
+import android.os.Looper
+import androidx.test.core.app.ApplicationProvider
 import androidx.annotation.OptIn
 import androidx.media3.common.C
 import androidx.media3.common.MediaLibraryInfo
@@ -25,6 +29,7 @@ class PlaybackServiceTest {
     private val controller: ServiceController<PlaybackService> =
         Robolectric.buildService(PlaybackService::class.java).create()
     private val service = controller.get()
+    private val context = ApplicationProvider.getApplicationContext<Context>()
 
     @After
     fun tearDown() {
@@ -47,6 +52,28 @@ class PlaybackServiceTest {
 
         assertThat(player.audioAttributes.usage).isEqualTo(C.USAGE_MEDIA)
         assertThat(player.audioAttributes.contentType).isEqualTo(C.AUDIO_CONTENT_TYPE_MUSIC)
+    }
+
+    @Test
+    fun pausingStopsTheStream() {
+        val player = session()!!.player
+        player.prepare()
+        player.play()
+
+        player.pause()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        assertThat(player.playbackState).isEqualTo(Player.STATE_IDLE)
+        assertThat(player.playWhenReady).isFalse()
+    }
+
+    @Test
+    fun mediaButtonReceiverIsDeclared() {
+        val intent = Intent(Intent.ACTION_MEDIA_BUTTON).setPackage("house.ouwl.draadloos")
+        val receivers = context.packageManager.queryBroadcastReceivers(intent, 0)
+
+        assertThat(receivers.map { it.activityInfo.name })
+            .containsExactly("androidx.media3.session.MediaButtonReceiver")
     }
 
     @Test

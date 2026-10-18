@@ -1,7 +1,11 @@
 package house.ouwl.draadloos.playback
 
 import android.content.Context
+import androidx.annotation.OptIn
 import androidx.media3.common.MediaMetadata
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.hls.HlsMediaSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
@@ -21,6 +25,27 @@ class StationTest {
             "https://playerservices.streamtheworld.com/api/livestream-redirect/RSGAAC.aac"
         )
         assertThat(item.mediaId).isEqualTo("rsg")
+    }
+
+    @Test
+    fun fallsBackToTheHlsStream_withTheSameMetadata() {
+        val fallback = Station.mediaItem(context, Station.FALLBACK_URL)
+
+        assertThat(fallback.localConfiguration!!.uri.toString()).isEqualTo(
+            "https://playerservices.streamtheworld.com/api/livestream-redirect/RSGAAC.m3u8"
+        )
+        assertThat(fallback.mediaId).isEqualTo("rsg")
+        assertThat(fallback.mediaMetadata.title.toString()).isEqualTo("RSG")
+    }
+
+    @OptIn(UnstableApi::class)
+    @Test
+    fun hlsStreamHasAMediaSource() {
+        // Fails if the HLS module is missing from the app.
+        val source = DefaultMediaSourceFactory(context)
+            .createMediaSource(Station.mediaItem(context, Station.FALLBACK_URL))
+
+        assertThat(source).isInstanceOf(HlsMediaSource::class.java)
     }
 
     @Test

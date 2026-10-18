@@ -37,7 +37,7 @@ Goal: automated tests for all app code, a coverage minimum that only goes up, an
 - [x] Test setup: JUnit, Robolectric, Compose UI testing, Media3 test utilities, Kover coverage with a minimum
 - [x] Tests for `RadioControls`, `Station`, `RadioScreen`, `PlaybackService` and `MainActivity`
 - [x] CI `test` job running the tests and the coverage check on every PR
-- [ ] `test` made a required check on `main` (repo setting, done by the owner)
+- [x] `test` made a required check on `main` (repo setting, done by the owner)
 
 From here on, every iteration adds tests with its code.
 
@@ -45,11 +45,11 @@ From here on, every iteration adds tests with its code.
 
 Goal: behave like a radio, not a podcast.
 
-- [ ] Pause stops and releases the connection; play reconnects at the live edge
-- [ ] Seeking removed, so there's no seek bar anywhere
-- [ ] Auto-reconnect with backoff (2s, 4s, 8s, capped at 30s), reset once the stream plays again; backoff logic written test-first as a plain Kotlin class
-- [ ] Switch to the HLS URL if the AAC stream keeps failing
-- [ ] Playback resumption (`MediaButtonReceiver` + `onPlaybackResumption`)
+- [x] Pause stops and releases the connection; play reconnects at the live edge
+- [x] Seeking removed, so there's no seek bar anywhere
+- [x] Auto-reconnect with backoff (2s, 4s, 8s, capped at 30s), reset once the stream plays again; backoff logic written test-first as a plain Kotlin class
+- [x] Switch to the HLS URL if the AAC stream keeps failing
+- [x] Playback resumption (`MediaButtonReceiver` + `onPlaybackResumption`)
 
 Done when:
 
