@@ -36,7 +36,7 @@ Goal: automated tests for all app code, a coverage minimum that only goes up, an
 
 - [x] Test setup: JUnit, Robolectric, Compose UI testing, Media3 test utilities, Kover coverage with a minimum
 - [x] Tests for `RadioControls`, `Station`, `RadioScreen`, `PlaybackService` and `MainActivity`
-- [ ] CI `test` job running the tests and the coverage check on every PR
+- [x] CI `test` job running the tests and the coverage check on every PR
 - [ ] `test` made a required check on `main` (repo setting, done by the owner)
 
 From here on, every iteration adds tests with its code.
