@@ -35,10 +35,13 @@ object Station {
             )
             .build()
 
+    // By name, not numeric ID: IDs can change between builds, and this URI may be persisted
+    // (e.g. for playback resumption).
     private fun artworkUri(context: Context): Uri =
         Uri.Builder()
             .scheme(ContentResolver.SCHEME_ANDROID_RESOURCE)
             .authority(context.packageName)
-            .appendPath(R.drawable.radio.toString())
+            .appendPath("drawable")
+            .appendPath(context.resources.getResourceEntryName(R.drawable.radio))
             .build()
 }

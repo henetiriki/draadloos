@@ -13,20 +13,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import com.google.common.util.concurrent.ListenableFuture
 import house.ouwl.draadloos.playback.PlaybackService
+import house.ouwl.draadloos.playback.toggle
 import house.ouwl.draadloos.ui.RadioScreen
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.guava.await
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
     private var controller by mutableStateOf<MediaController?>(null)
-    private var connectJob: Job? = null
+    private var controllerFuture: ListenableFuture<MediaController>? = null
 
     private val requestNotificationPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
@@ -46,14 +43,22 @@ class MainActivity : ComponentActivity() {
     override fun onStart() {
         super.onStart()
         val token = SessionToken(this, ComponentName(this, PlaybackService::class.java))
-        connectJob = lifecycleScope.launch {
-            controller = MediaController.Builder(this@MainActivity, token).buildAsync().await()
-        }
+        val future = MediaController.Builder(this, token).buildAsync()
+        controllerFuture = future
+        future.addListener(
+            {
+                if (controllerFuture === future) {
+                    controller = runCatching { future.get() }.getOrNull()
+                }
+            },
+            ContextCompat.getMainExecutor(this),
+        )
     }
 
     override fun onStop() {
-        connectJob?.cancel()
-        controller?.release()
+        // Releases the controller, or cancels the connection if it hasn't finished yet.
+        controllerFuture?.let(MediaController::releaseFuture)
+        controllerFuture = null
         controller = null
         super.onStop()
     }
@@ -64,14 +69,5 @@ class MainActivity : ComponentActivity() {
             this, Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
         if (!granted) requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
-    }
-}
-
-private fun Player.toggle() {
-    if (playWhenReady) {
-        pause()
-    } else {
-        if (playbackState == Player.STATE_IDLE) prepare()
-        play()
     }
 }

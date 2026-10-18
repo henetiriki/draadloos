@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
 import house.ouwl.draadloos.R
+import house.ouwl.draadloos.playback.isOn
 
 // High contrast for an older user: black background, bright yellow and white.
 private val Background = Color(0xFF000000)
@@ -41,13 +42,13 @@ private val StopColour = Color(0xFFFF5A3C)
 
 @Composable
 fun RadioScreen(controller: Player?, onToggle: () -> Unit) {
-    // Mirrors the session: "on" means the user asked for sound, even while it is still connecting.
-    var isOn by remember(controller) { mutableStateOf(controller?.playWhenReady == true) }
+    // Mirrors the session: "on" means playing or connecting; a failed stream reads as off.
+    var isOn by remember(controller) { mutableStateOf(controller?.isOn == true) }
 
     DisposableEffect(controller) {
         val listener = object : Player.Listener {
-            override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) {
-                isOn = playWhenReady
+            override fun onEvents(player: Player, events: Player.Events) {
+                isOn = player.isOn
             }
         }
         controller?.addListener(listener)
