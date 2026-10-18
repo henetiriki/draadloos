@@ -21,7 +21,7 @@ Goal: tap a big button, RSG plays, and it keeps playing with the screen off.
 - [x] Audio focus and becoming-noisy handling (pause on headphone unplug)
 - [x] Compose screen: one huge "Speel"/"Stop" button connected to the service, large high-contrast text
 - [x] Ask for `POST_NOTIFICATIONS` permission on Android 13+
-- [ ] Starter README with build and sideload steps
+- [x] Starter README with build and sideload steps
 
 Done when:
 
