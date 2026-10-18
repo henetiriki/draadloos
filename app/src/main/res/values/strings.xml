@@ -11,4 +11,10 @@
     <string name="status_connecting">Koppel aan RSG…</string>
     <string name="status_live">Regstreeks</string>
     <string name="now_playing_label">Nou op die lug</string>
+    <string name="warning_title">Verbinding verloor</string>
+    <string name="warning_body">Moenie bekommer nie, ons probeer self weer.</string>
+    <plurals name="retry_countdown">
+        <item quantity="one">Probeer weer oor %d sekonde…</item>
+        <item quantity="other">Probeer weer oor %d sekondes…</item>
+    </plurals>
 </resources>

@@ -77,6 +77,29 @@ internal fun LiveDot() {
     Box(Modifier.size(14.dp).alpha(alpha).background(Live, CircleShape))
 }
 
+/** A wifi symbol (dot and two arcs) struck through. */
+@Composable
+internal fun WifiOffIcon(size: Dp, color: Color) {
+    Canvas(Modifier.size(size)) {
+        val w = this.size.width
+        val h = this.size.height
+        val stroke = Stroke(width = w * 0.09f, cap = StrokeCap.Round)
+        drawCircle(color, radius = w * 0.07f, center = Offset(w * 0.5f, h * 0.78f))
+        fun arc(reach: Float) = drawArc(
+            color,
+            startAngle = -135f,
+            sweepAngle = 90f,
+            useCenter = false,
+            topLeft = Offset(w * (0.5f - reach), h * (0.78f - reach)),
+            size = Size(w * reach * 2, h * reach * 2),
+            style = stroke,
+        )
+        arc(0.2f)
+        arc(0.4f)
+        drawLine(color, Offset(w * 0.12f, h * 0.12f), Offset(w * 0.88f, h * 0.88f), stroke.width, StrokeCap.Round)
+    }
+}
+
 /** ■ while the radio is on, ▶ while it is off, so the button never relies on colour alone. */
 @Composable
 internal fun ToggleIcon(on: Boolean, size: Dp, color: Color) {

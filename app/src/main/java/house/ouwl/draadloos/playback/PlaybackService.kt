@@ -26,7 +26,11 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val station = Station.mediaItem(this)
-        val liveStream = LiveStream(station, Station.mediaItem(this, Station.FALLBACK_URL))
+        val liveStream = LiveStream(
+            station,
+            Station.mediaItem(this, Station.FALLBACK_URL),
+            onRetryAt = { retryAt -> mediaSession?.setSessionExtras(retryExtras(retryAt)) },
+        )
         this.liveStream = liveStream
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(

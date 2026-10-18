@@ -36,6 +36,7 @@ class IndicatorsTest {
                 LiveDot()
                 ToggleIcon(on = false, size = 56.dp, color = Color.Black)
                 ToggleIcon(on = true, size = 56.dp, color = Color.Black)
+                WifiOffIcon(size = 36.dp, color = Color.Black)
             }
         }
         val image = compose.onRoot().captureToImage()

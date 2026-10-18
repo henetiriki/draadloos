@@ -94,6 +94,8 @@ class FakeRadioPlayer(
                 .setMediaMetadata(
                     MediaMetadata.Builder()
                         .setTitle(title ?: "RSG")
+                        // Like NowPlayingUpdater: media metadata equality ignores the extras.
+                        .setArtist(artist)
                         .setExtras(
                             title?.let {
                                 Bundle().apply {
