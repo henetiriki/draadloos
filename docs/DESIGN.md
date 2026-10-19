@@ -121,7 +121,8 @@ Rules:
 
 - Spinner: rotates once a second.
 - Live dot: fades its opacity 1 → 0.35 → 1 over 1.6s.
-- If the system animator duration scale is 0 (animations turned off), show both static.
+- Moving between the stopped / connecting layout and the playing / connection-lost layout eases the station art (size and corner radius), the "RSG" text size and the top padding over 200ms, instead of jumping.
+- If the system animator duration scale is 0 (animations turned off), show the spinner and the live dot static, and change sizes at once.
 
 ### Accessibility
 

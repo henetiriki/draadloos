@@ -1,6 +1,11 @@
 package house.ouwl.draadloos.ui
 
 import android.os.SystemClock
+import androidx.compose.animation.core.AnimationSpec
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -47,10 +52,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.media3.common.Player
@@ -69,6 +76,12 @@ internal fun Player.radioState(): RadioState = when {
     isPlaying -> RadioState.Playing
     else -> RadioState.Connecting
 }
+
+private const val RESIZE_MS = 200
+
+/** Eases a size change, or snaps when the user has turned animations off. */
+private fun <T> resizeSpec(animate: Boolean): AnimationSpec<T> =
+    if (animate) tween(RESIZE_MS) else snap()
 
 /** A short rebuffer while audio is playing shouldn't flash "Koppel aan RSG…". */
 private const val CONNECTING_DEBOUNCE_MS = 300L
@@ -128,6 +141,18 @@ fun RadioScreen(
     }
 
     val compact = state == RadioState.Playing || state == RadioState.Reconnecting
+
+    // Playing and connection lost are drawn smaller to make room for the card and the panel.
+    // The change eases in instead of jumping every time the button is pressed.
+    val spec = resizeSpec<Dp>(animationsEnabled())
+    val top by animateDpAsState(if (compact) 56.dp else 72.dp, spec, label = "top")
+    val artSize by animateDpAsState(if (compact) 132.dp else 168.dp, spec, label = "artSize")
+    val artCorner by animateDpAsState(if (compact) 28.dp else 32.dp, spec, label = "artCorner")
+    val stationSize by animateFloatAsState(
+        if (compact) 56f else 64f,
+        resizeSpec(animationsEnabled()),
+        label = "stationSize",
+    )
     val on = state != RadioState.Stopped
 
     Column(
@@ -139,7 +164,7 @@ fun RadioScreen(
                 PaddingValues(
                     start = 24.dp,
                     end = 24.dp,
-                    top = if (compact) 56.dp else 72.dp,
+                    top = top,
                     bottom = 40.dp,
                 )
             ),
@@ -153,12 +178,12 @@ fun RadioScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
-            StationArt(compact, dimmed = state == RadioState.Reconnecting)
+            StationArt(artSize, artCorner, dimmed = state == RadioState.Reconnecting)
             Spacer(Modifier.height(20.dp))
             Text(
                 text = stringResource(R.string.station_name),
                 color = OnBackground,
-                style = if (compact) Type.StationLargePlaying else Type.StationLarge,
+                style = Type.StationLarge.copy(fontSize = stationSize.sp),
                 maxLines = 1,
             )
             Text(
@@ -187,14 +212,13 @@ fun RadioScreen(
 }
 
 @Composable
-private fun StationArt(compact: Boolean, dimmed: Boolean) {
-    val size = if (compact) 132.dp else 168.dp
-    val corner = if (compact) 28.dp else 32.dp
+private fun StationArt(size: Dp, corner: Dp, dimmed: Boolean) {
     Image(
         painter = painterResource(R.drawable.radio),
         contentDescription = null,
         modifier = Modifier
             .size(size)
+            .testTag("station_art")
             .alpha(if (dimmed) 0.55f else 1f)
             .clip(RoundedCornerShape(corner))
             .background(Color.White),

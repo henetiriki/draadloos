@@ -31,7 +31,7 @@ import androidx.compose.ui.unit.dp
 
 /** False when the user turned animations off (animator duration scale 0): show things static. */
 @Composable
-private fun animationsEnabled(): Boolean {
+internal fun animationsEnabled(): Boolean {
     val resolver = LocalContext.current.contentResolver
     return remember(resolver) {
         Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f

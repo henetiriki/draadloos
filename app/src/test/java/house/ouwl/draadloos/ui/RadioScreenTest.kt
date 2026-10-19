@@ -8,7 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.media3.common.Player
@@ -254,6 +256,53 @@ class RadioScreenTest {
 
         compose.onNodeWithText("Juanita du Plessis").assertExists()
         compose.onNodeWithText("Kobus Human").assertDoesNotExist()
+    }
+
+    private fun artWidth(): Float {
+        val bounds = compose.onNodeWithTag("station_art").getUnclippedBoundsInRoot()
+        return (bounds.right - bounds.left).value
+    }
+
+    @Test
+    fun theArtShrinksSmoothly_whenPlayingStarts_andGrowsBackOnStop() {
+        val player = FakeRadioPlayer(false, Player.STATE_IDLE)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { RadioScreen(player, retryAt = null, onToggle = {}, clock = { clockMs }) }
+        compose.mainClock.advanceTimeByFrame()
+        assertThat(artWidth()).isWithin(0.5f).of(168f)
+
+        player.moveTo(playWhenReady = true, playbackState = Player.STATE_READY)
+        shadowOf(Looper.getMainLooper()).idle()
+        compose.mainClock.advanceTimeBy(100)
+        assertThat(artWidth()).isGreaterThan(133f)
+        assertThat(artWidth()).isLessThan(167f)
+        compose.mainClock.advanceTimeBy(1_000)
+        assertThat(artWidth()).isWithin(0.5f).of(132f)
+
+        player.moveTo(playWhenReady = false)
+        shadowOf(Looper.getMainLooper()).idle()
+        compose.mainClock.advanceTimeBy(100)
+        assertThat(artWidth()).isGreaterThan(133f)
+        assertThat(artWidth()).isLessThan(167f)
+        compose.mainClock.advanceTimeBy(1_000)
+        assertThat(artWidth()).isWithin(0.5f).of(168f)
+    }
+
+    @Test
+    fun withAnimationsOff_theArtResizesAtOnce() {
+        val resolver = ApplicationProvider.getApplicationContext<android.content.Context>().contentResolver
+        Settings.Global.putFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 0f)
+        val player = FakeRadioPlayer(false, Player.STATE_IDLE)
+        compose.mainClock.autoAdvance = false
+        compose.setContent { RadioScreen(player, retryAt = null, onToggle = {}, clock = { clockMs }) }
+        compose.mainClock.advanceTimeByFrame()
+
+        player.moveTo(playWhenReady = true, playbackState = Player.STATE_READY)
+        shadowOf(Looper.getMainLooper()).idle()
+        compose.mainClock.advanceTimeByFrame()
+        compose.mainClock.advanceTimeByFrame()
+
+        assertThat(artWidth()).isWithin(0.5f).of(132f)
     }
 
     @Test
