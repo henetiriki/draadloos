@@ -33,12 +33,38 @@ CI runs the same command as the `test` check on every pull request.
 
 ## Install on a phone (sideload)
 
+You need an Android 8.0 (API 26) phone or newer.
+
+### 1. Get the APK
+
+Either build it yourself (see [Build](#build)), or take it from CI, which needs no developer tools:
+
+1. Open the repository on GitHub, go to **Actions**, and open the latest **CI** run on `main` (or on the pull request you want to try).
+2. Under **Artifacts** at the bottom of the run page, download **`draadloos-debug-apk`**. It is a zip file containing `app-debug.apk`. You need to be signed in to GitHub to download artifacts.
+3. Unzip it. On the phone, a file manager or the Files app can open the zip.
+
+### 2. Install it
+
+**Without a computer connection:** copy `app-debug.apk` to the phone (for example by email or Google Drive) and open it from the phone's Files app. Android blocks apps from outside the Play Store until you allow it for the app you opened the file with, so:
+
+- When Android says "For your security, your phone is not allowed to install unknown apps from this source", tap **Settings** and turn on **Allow from this source** for that app (Files, Drive, Chrome and so on).
+- Go back and tap **Install**. If Play Protect warns about an unknown developer, choose **Install anyway**.
+- You can turn the permission off again afterwards (Settings → Apps → Special app access → Install unknown apps).
+
 **With a USB cable and `adb`:** turn on USB debugging on the phone (Settings → About phone → tap "Build number" seven times, then Developer options → USB debugging), connect it, and run:
 
 ```sh
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-**Without a computer connection:** copy the APK to the phone (for example by email or Google Drive), open it from the phone's Files app, and allow your file manager to "install unknown apps" when Android asks.
+On Android 13 and newer, allow notifications when the app first opens so the radio controls show in the notification shade and on the lock screen.
 
-On Android 13 and newer, allow notifications when the app first opens so the radio controls show in the notification shade.
+## Add the widget
+
+There are two home-screen widgets, a wide one (4×1) and a small one (1×1). Each has one round button that plays or stops RSG and always shows the real state: yellow ▶ when stopped, white ■ when playing or connecting. The wide one also shows what is on air.
+
+1. Touch and hold an empty spot on the home screen and choose **Widgets**.
+2. Find **Draadloos** and pick **RSG (breed)** or **RSG (klein)**.
+3. Touch and hold the widget, drag it to a spot on the home screen and let go.
+
+Tap the round button to play or stop. Tap anywhere else on the widget to open the app. The widget works even if the app isn't open.

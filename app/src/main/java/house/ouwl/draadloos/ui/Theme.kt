@@ -36,7 +36,6 @@ private fun style(size: Int, weight: FontWeight = FontWeight.Normal) =
 internal object Type {
     val ButtonLabel = style(64, FontWeight.Bold)
     val StationLarge = style(64, FontWeight.Bold)
-    val StationLargePlaying = style(56, FontWeight.Bold)
     val StationSub = style(24)
     val Status = style(22)
     val StatusBold = style(22, FontWeight.Bold)

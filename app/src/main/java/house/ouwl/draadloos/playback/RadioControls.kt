@@ -20,6 +20,16 @@ fun Player.nowPlaying(): NowPlaying? {
     return NowPlaying(extras.getString(NOW_PLAYING_ARTIST_EXTRA), mediaMetadata.title.toString())
 }
 
+/** Starts the radio if it is off; does nothing while it is already on. */
+fun Player.turnOn() {
+    if (!isOn) toggle()
+}
+
+/** Stops the radio if it is on; does nothing while it is already off. */
+fun Player.turnOff() {
+    if (isOn) toggle()
+}
+
 fun Player.toggle() {
     if (isOn) {
         pause()

@@ -28,12 +28,15 @@ Run `./gradlew` as the entire Bash command, with no `cd`, `&&` or env prefix. It
 - `playback/FakeRadioPlayer` is a `SimpleBasePlayer` whose state tests set directly. Use it for anything that takes a `Player`.
 - `MainActivityTest` binds a real in-process `PlaybackService` with `ShadowApplication.setComponentNameAndServiceForBindService`. Tests that don't need playback must call `declareComponentUnbindable` instead, because Robolectric's default fake binding crashes Media3.
 - Use the `v2` Compose test rules (`androidx.compose.ui.test.junit4.v2`); the old ones are deprecated.
+- Widgets are tested with `runGlanceAppWidgetUnitTest` (`glance-appwidget-testing`) against each widget's `content`, with the state handed in through `setState(preferences)`. That harness does not pick up state changes made after the first composition, so "the widget redraws" can't be shown in a unit test: it has to be checked on a device. Don't drive a real widget update in a test: Glance draws it in a session that deadlocks a Robolectric test on a second update, and `ShadowAppWidgetManager.createWidget` fires a fake broadcast that leaks an exception into later tests. The few lines that call into Glance's runtime (`provideGlance` and `RadioWidgetState.redraw`) are marked `@SessionOnly` and excluded from coverage in `app/build.gradle.kts` for that reason; keep any logic out of it.
+- Small drawing-only composables are `@NonRestartableComposable`, which avoids the "skip if unchanged" branches that tests can't reach and that would otherwise eat into the branch minimum.
 
 ## Layout
 
 - `playback/PlaybackService.kt` owns the ExoPlayer and the MediaSession. Everything else talks to it through a `MediaController`.
 - `playback/Station.kt` holds the stream URL and the station's `MediaItem` and metadata.
 - `MainActivity.kt` connects a `MediaController` in `onStart` and releases it in `onStop`. `ui/RadioScreen.kt` is the single screen.
+- `widget/` holds the two Glance widgets (4x1 and 1x1). `WidgetSync` listens to the session's player in `PlaybackService` and pushes each change to every installed widget through `RadioWidgetState.update`. **A widget only redraws when its Glance state changes**: the state lives in each widget's Glance preferences (`WidgetPrefs`), and a plain variable or Compose state would leave it showing its first frame. Preferences written by another process read as stopped, so a killed app or a reboot can't leave a widget on Stop. The widgets send `PlaybackService.ACTION_PLAY` (with `startForegroundService`) and `ACTION_STOP` (plain `startService`); the service handles both in `onStartCommand`.
 
 ## Constraints that span components
 

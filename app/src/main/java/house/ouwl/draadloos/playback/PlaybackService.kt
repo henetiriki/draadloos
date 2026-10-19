@@ -12,6 +12,7 @@ import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import house.ouwl.draadloos.MainActivity
 import house.ouwl.draadloos.R
+import house.ouwl.draadloos.widget.WidgetSync
 
 /**
  * Owns the player and the media session. Running as a mediaPlayback foreground service
@@ -22,6 +23,7 @@ class PlaybackService : MediaSessionService() {
 
     private var mediaSession: MediaSession? = null
     private var liveStream: LiveStream? = null
+    private var widgetSync: WidgetSync? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -50,7 +52,11 @@ class PlaybackService : MediaSessionService() {
         liveStream.attach(player)
         NowPlayingUpdater(getString(R.string.station_name), getString(R.string.station_tagline)).attach(player)
 
-        mediaSession = MediaSession.Builder(this, ReconnectingPlayer(player))
+        // The widgets show what the session shows, so they listen to the session's own player.
+        val sessionPlayer = ReconnectingPlayer(player)
+        widgetSync = WidgetSync(this).also { it.attach(sessionPlayer) }
+
+        mediaSession = MediaSession.Builder(this, sessionPlayer)
             .setCallback(RadioSessionCallback(station))
             .setSessionActivity(
                 PendingIntent.getActivity(
@@ -66,7 +72,21 @@ class PlaybackService : MediaSessionService() {
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? =
         mediaSession
 
+    /**
+     * The widgets start and stop the radio with these. Play arrives through
+     * startForegroundService, and Media3 moves the service to the foreground once playback begins.
+     */
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        when (intent?.action) {
+            ACTION_PLAY -> mediaSession?.player?.turnOn()
+            ACTION_STOP -> mediaSession?.player?.turnOff()
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     override fun onDestroy() {
+        widgetSync?.release()
+        widgetSync = null
         liveStream?.release()
         liveStream = null
         mediaSession?.run {
@@ -75,5 +95,13 @@ class PlaybackService : MediaSessionService() {
         }
         mediaSession = null
         super.onDestroy()
+    }
+
+    companion object {
+        /** Start (or reconnect to) the live stream. Sent with startForegroundService. */
+        const val ACTION_PLAY = "house.ouwl.draadloos.action.PLAY"
+
+        /** Stop the stream and release the connection. Sent with a plain startService. */
+        const val ACTION_STOP = "house.ouwl.draadloos.action.STOP"
     }
 }
