@@ -1,7 +1,15 @@
 package house.ouwl.draadloos.widget
 
 import android.content.Context
-import androidx.glance.appwidget.updateAll
+import android.os.Process
+import androidx.datastore.preferences.core.MutablePreferences
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
+import androidx.glance.GlanceId
+import androidx.glance.appwidget.GlanceAppWidget
+import androidx.glance.appwidget.GlanceAppWidgetManager
+import androidx.glance.appwidget.state.updateAppWidgetState
 import androidx.media3.common.Player
 import house.ouwl.draadloos.playback.NowPlaying
 import house.ouwl.draadloos.playback.nowPlaying
@@ -25,8 +33,44 @@ internal fun Player.widgetState(): WidgetState {
 }
 
 /**
- * The state the widgets draw. The playback service keeps it up to date, and it starts as
- * stopped in every new process: if the process died, so did the service and the audio.
+ * How a widget keeps its state: in its own Glance preferences. Glance draws a widget once and
+ * afterwards redraws it only when its Glance state changes, so the state has to live there
+ * (a plain variable, or Compose state, never redraws it).
+ *
+ * The preferences outlive the process, but the audio does not. Each write is stamped with the
+ * process that made it, and state from any other process reads as stopped: if the process
+ * died, or the phone rebooted, the service and its audio are gone.
+ */
+internal object WidgetPrefs {
+    val PHASE = stringPreferencesKey("phase")
+    val OWNER = longPreferencesKey("owner")
+    val ARTIST = stringPreferencesKey("artist")
+    val TITLE = stringPreferencesKey("title")
+
+    // Unique to this process and this boot.
+    private fun owner(): Long = Process.getStartElapsedRealtime()
+
+    fun write(prefs: MutablePreferences, state: WidgetState) {
+        prefs[PHASE] = state.phase.name
+        prefs[OWNER] = owner()
+        prefs.remove(ARTIST)
+        prefs.remove(TITLE)
+        val song = state.song ?: return
+        prefs[TITLE] = song.title
+        if (song.artist != null) prefs[ARTIST] = song.artist
+    }
+
+    fun read(prefs: Preferences): WidgetState {
+        val phase = prefs[PHASE]
+        if (phase == null || prefs[OWNER] != owner()) return WidgetState()
+        return WidgetState(RadioState.valueOf(phase), prefs[TITLE]?.let { NowPlaying(prefs[ARTIST], it) })
+    }
+}
+
+/**
+ * The latest state the service has reported, for a widget that is drawn (or added) after the
+ * change. It starts as stopped in every new process. [update] also writes it into every
+ * installed widget's preferences and redraws them.
  */
 internal object RadioWidgetState {
 
@@ -34,11 +78,17 @@ internal object RadioWidgetState {
     var current = WidgetState()
         private set
 
-    /** Remembers [state] and redraws both widgets, unless nothing changed. */
     suspend fun update(context: Context, state: WidgetState) {
-        if (state == current) return
         current = state
-        RadioWideWidget().updateAll(context)
-        RadioSmallWidget().updateAll(context)
+        redraw(context, RadioWideWidget())
+        redraw(context, RadioSmallWidget())
+    }
+
+    @SessionOnly
+    private suspend fun redraw(context: Context, widget: GlanceAppWidget) {
+        for (id in GlanceAppWidgetManager(context).getGlanceIds(widget.javaClass)) {
+            updateAppWidgetState(context, id) { WidgetPrefs.write(it, current) }
+            widget.update(context, id)
+        }
     }
 }

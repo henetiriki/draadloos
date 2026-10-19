@@ -9,6 +9,9 @@ import androidx.glance.appwidget.testing.unit.GlanceAppWidgetUnitTest
 import androidx.glance.appwidget.testing.unit.runGlanceAppWidgetUnitTest
 import androidx.glance.testing.unit.hasContentDescription
 import androidx.glance.testing.unit.hasText
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.core.mutablePreferencesOf
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.google.common.truth.Truth.assertThat
@@ -16,7 +19,6 @@ import house.ouwl.draadloos.MainActivity
 import house.ouwl.draadloos.playback.NowPlaying
 import house.ouwl.draadloos.playback.PlaybackService
 import house.ouwl.draadloos.ui.RadioState
-import kotlinx.coroutines.runBlocking
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -127,38 +129,48 @@ class RadioWidgetsTest {
         assertThat(WidgetMetrics.art(64.dp)).isEqualTo(56.dp)
     }
 
-    // What the widgets hand to Glance is their `content`: it draws the state the service keeps.
+    // What the widgets hand to Glance is their `content`: it draws the state in the widget's
+    // preferences, which is how the service reaches a widget that is already on the home screen.
 
-    private fun withState(state: WidgetState, block: () -> Unit) {
-        runBlocking { RadioWidgetState.update(context, state) }
-        try {
-            block()
-        } finally {
-            runBlocking { RadioWidgetState.update(context, WidgetState()) }
-        }
+    private fun prefsFor(state: WidgetState): Preferences =
+        mutablePreferencesOf().also { WidgetPrefs.write(it, state) }
+
+    @Test
+    fun wideContent_drawsTheStateInThePreferences() = runGlanceAppWidgetUnitTest {
+        setContext(context)
+        setAppWidgetSize(wideSize)
+        setState(prefsFor(liveWithSong))
+        provideComposable { RadioWideWidget().content() }
+
+        onNode(hasText("Kobus Human – Môre")).assertExists()
+        onNode(hasContentDescription("Stop RSG")).assertExists()
     }
 
     @Test
-    fun wideContent_drawsTheCurrentState() = withState(liveWithSong) {
-        runGlanceAppWidgetUnitTest {
-            setContext(context)
-            setAppWidgetSize(wideSize)
-            provideComposable { RadioWideWidget().content() }
+    fun smallContent_drawsTheStateInThePreferences() = runGlanceAppWidgetUnitTest {
+        setContext(context)
+        setAppWidgetSize(smallSize)
+        setState(prefsFor(connecting))
+        provideComposable { RadioSmallWidget().content() }
 
-            onNode(hasText("Kobus Human – Môre")).assertExists()
-            onNode(hasContentDescription("Stop RSG")).assertExists()
-        }
+        onNode(hasText("RSG")).assertExists()
+        onNode(hasContentDescription("Stop RSG")).assertExists()
     }
 
     @Test
-    fun smallContent_drawsTheCurrentState() = withState(connecting) {
-        runGlanceAppWidgetUnitTest {
-            setContext(context)
-            setAppWidgetSize(smallSize)
-            provideComposable { RadioSmallWidget().content() }
+    fun aWidgetThatWasNeverWritten_showsStopped() = runGlanceAppWidgetUnitTest {
+        setContext(context)
+        setAppWidgetSize(wideSize)
+        setState(mutablePreferencesOf().toPreferences())
+        provideComposable { RadioWideWidget().content() }
 
-            onNode(hasText("RSG")).assertExists()
-            onNode(hasContentDescription("Stop RSG")).assertExists()
-        }
+        onNode(hasText("Gestop")).assertExists()
+        onNode(hasContentDescription("Speel RSG")).assertExists()
+    }
+
+    @Test
+    fun theWidgets_useGlancePreferencesForTheirState() {
+        assertThat(RadioWideWidget().stateDefinition).isSameInstanceAs(PreferencesGlanceStateDefinition)
+        assertThat(RadioSmallWidget().stateDefinition).isSameInstanceAs(PreferencesGlanceStateDefinition)
     }
 }

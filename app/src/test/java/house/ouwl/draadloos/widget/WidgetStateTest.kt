@@ -1,6 +1,7 @@
 package house.ouwl.draadloos.widget
 
 import android.os.Looper
+import androidx.datastore.preferences.core.mutablePreferencesOf
 import androidx.media3.common.Player
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -72,11 +73,75 @@ class WidgetStateTest {
     }
 
     @Test
-    fun update_withTheSameState_changesNothing() = runBlocking {
+    fun update_withTheSameStateTwice_isHarmless() = runBlocking {
         RadioWidgetState.update(context, WidgetState(RadioState.Connecting))
         RadioWidgetState.update(context, WidgetState(RadioState.Connecting))
 
         assertThat(RadioWidgetState.current.phase).isEqualTo(RadioState.Connecting)
+    }
+
+    // How a state travels to a widget: into its preferences and back.
+
+    private fun roundTrip(state: WidgetState): WidgetState {
+        val prefs = mutablePreferencesOf()
+        WidgetPrefs.write(prefs, state)
+        return WidgetPrefs.read(prefs)
+    }
+
+    @Test
+    fun prefs_carryEveryPhase() {
+        for (phase in listOf(RadioState.Stopped, RadioState.Connecting, RadioState.Playing)) {
+            assertThat(roundTrip(WidgetState(phase)).phase).isEqualTo(phase)
+        }
+    }
+
+    @Test
+    fun prefs_carryTheSong() {
+        val playing = WidgetState(RadioState.Playing, NowPlaying("Kobus Human", "Môre"))
+
+        assertThat(roundTrip(playing)).isEqualTo(playing)
+    }
+
+    @Test
+    fun prefs_carryATitleWithoutAnArtist() {
+        val playing = WidgetState(RadioState.Playing, NowPlaying(null, "Nuus om sewe"))
+
+        assertThat(roundTrip(playing)).isEqualTo(playing)
+    }
+
+    @Test
+    fun prefs_dropTheOldSong_whenTheNextStateHasNone() {
+        val prefs = mutablePreferencesOf()
+        WidgetPrefs.write(prefs, WidgetState(RadioState.Playing, NowPlaying("Kobus Human", "Môre")))
+
+        WidgetPrefs.write(prefs, WidgetState(RadioState.Playing))
+
+        assertThat(WidgetPrefs.read(prefs)).isEqualTo(WidgetState(RadioState.Playing))
+    }
+
+    @Test
+    fun prefs_dropTheOldArtist_whenTheNextSongHasNone() {
+        val prefs = mutablePreferencesOf()
+        WidgetPrefs.write(prefs, WidgetState(RadioState.Playing, NowPlaying("Kobus Human", "Môre")))
+
+        WidgetPrefs.write(prefs, WidgetState(RadioState.Playing, NowPlaying(null, "Nuus om sewe")))
+
+        assertThat(WidgetPrefs.read(prefs).song).isEqualTo(NowPlaying(null, "Nuus om sewe"))
+    }
+
+    @Test
+    fun prefs_neverWritten_readAsStopped() {
+        assertThat(WidgetPrefs.read(mutablePreferencesOf())).isEqualTo(WidgetState())
+    }
+
+    @Test
+    fun prefs_fromAnotherProcess_readAsStopped() {
+        // The phone rebooted, or the app was killed while playing: the audio is gone.
+        val prefs = mutablePreferencesOf()
+        WidgetPrefs.write(prefs, WidgetState(RadioState.Playing, NowPlaying("Kobus Human", "Môre")))
+        prefs[WidgetPrefs.OWNER] = prefs[WidgetPrefs.OWNER]!! + 1
+
+        assertThat(WidgetPrefs.read(prefs)).isEqualTo(WidgetState())
     }
 
     @Test

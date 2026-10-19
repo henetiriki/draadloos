@@ -9,6 +9,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
+import androidx.glance.currentState
 import androidx.glance.Image
 import androidx.glance.ImageProvider
 import androidx.glance.LocalContext
@@ -23,6 +24,9 @@ import androidx.glance.appwidget.action.actionStartService
 import androidx.glance.appwidget.appWidgetBackground
 import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
+import androidx.glance.appwidget.state.updateAppWidgetState
+import androidx.glance.state.GlanceStateDefinition
+import androidx.glance.state.PreferencesGlanceStateDefinition
 import androidx.glance.background
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
@@ -51,10 +55,12 @@ import house.ouwl.draadloos.ui.StopButton
 import house.ouwl.draadloos.ui.TextMuted
 
 /**
- * Marks the one line a widget hands its content to Glance with. Glance only runs it inside its
- * own session, which a Robolectric test can't host (a second update deadlocks the test, and the
- * app widget shadow fires fake broadcasts Glance can't finish). Left out of the coverage report;
- * what it draws is the widget's `content`, which the tests compose directly.
+ * Marks the few lines that hand a widget's state and content to Glance's own runtime. That
+ * runtime only works inside a session, which a Robolectric test can't host (a second update
+ * deadlocks the test, and the app widget shadow fires fake broadcasts Glance can't finish).
+ * Left out of the coverage report. The logic around them is tested: what a widget draws is its
+ * `content` (composed in the tests with preferences handed in), and how state becomes
+ * preferences and back is [WidgetPrefs].
  */
 @Retention(AnnotationRetention.BINARY)
 @Target(AnnotationTarget.FUNCTION)
@@ -64,20 +70,30 @@ internal annotation class SessionOnly
 class RadioWideWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Exact
 
-    internal val content: @Composable () -> Unit = { WideWidget(RadioWidgetState.current) }
+    override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+
+    internal val content: @Composable () -> Unit = { WideWidget(WidgetPrefs.read(currentState())) }
 
     @SessionOnly
-    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent(content)
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        updateAppWidgetState(context, id) { WidgetPrefs.write(it, RadioWidgetState.current) }
+        provideContent(content)
+    }
 }
 
 /** The 1x1 widget: just the toggle and the station name. */
 class RadioSmallWidget : GlanceAppWidget() {
     override val sizeMode = SizeMode.Exact
 
-    internal val content: @Composable () -> Unit = { SmallWidget(RadioWidgetState.current) }
+    override val stateDefinition: GlanceStateDefinition<*> = PreferencesGlanceStateDefinition
+
+    internal val content: @Composable () -> Unit = { SmallWidget(WidgetPrefs.read(currentState())) }
 
     @SessionOnly
-    override suspend fun provideGlance(context: Context, id: GlanceId) = provideContent(content)
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        updateAppWidgetState(context, id) { WidgetPrefs.write(it, RadioWidgetState.current) }
+        provideContent(content)
+    }
 }
 
 class RadioWideWidgetReceiver : GlanceAppWidgetReceiver() {
