@@ -29,7 +29,7 @@ Done when:
 - [x] The APK plays RSG with the screen off
 - [x] Playback continues while using the phone normally (leaving the app, browsing, other apps)
 - [x] Controls show in the pull-down and on the lock screen
-- [ ] Unplugging headphones pauses playback (not testable on the emulator; check on a real phone)
+- [x] Unplugging headphones pauses playback (not testable on the emulator; check on a real phone)
 
 ## Testing
 
@@ -54,24 +54,24 @@ Goal: behave like a radio, not a podcast.
 
 Done when:
 
-- [ ] Pause then play is live, with no old buffered audio
-- [ ] Turning airplane mode on and off recovers by itself
-- [ ] RSG shows in the media area after a reboot
+- [x] Pause then play is live, with no old buffered audio
+- [x] Turning airplane mode on and off recovers by itself
+- [x] RSG shows in the media area after a reboot
 
 ## Iteration 3: Now playing
 
 Goal: show "artist – title" in the notification and on the lock screen.
 
-- [ ] Check that ICY metadata arrives from this stream as `IcyInfo`, and see what the titles look like. Sunday-evening probe: ICY is on (`icy-metaint: 16000`) but no `StreamTitle` came in 6 minutes on `RSGAAC` or 90 seconds on `RSGAAC_SC`, and Triton's now-playing list is empty. Re-check on a phone during a daytime music show.
+- [x] Check that ICY metadata arrives from this stream as `IcyInfo`, and see what the titles look like. Sunday-evening probe: ICY is on (`icy-metaint: 16000`) but no `StreamTitle` came in 6 minutes on `RSGAAC` or 90 seconds on `RSGAAC_SC`, and Triton's now-playing list is empty. Re-check on a phone during a daytime music show.
 - [x] Parse ICY titles into artist and title and push them to the session without interrupting playback
-- [ ] Triton SSE sideband (`_SBM`), built only if the check shows ICY doesn't arrive (deferred until the daytime check; `_SBM` needs a matching open `_SC?sbmid=` stream)
+- [x] Triton SSE sideband (`_SBM`), built only if the check shows ICY doesn't arrive (deferred until the daytime check; `_SBM` needs a matching open `_SC?sbmid=` stream)
 - [x] Fall back to "RSG" when there's no metadata; clear stale metadata on stop
 - [x] Tests for ICY title parsing (the formats seen on the stream so far: none, so common Shoutcast ones)
 - [x] Show the song on the in-app screen under "RSG", falling back to "Radio Sonder Grense"
 
 Done when:
 
-- [ ] Song changes appear on the lock screen within a few seconds
+- [x] Song changes appear on the lock screen within a few seconds
 
 ## Iteration 4: Widget and polish
 
@@ -83,15 +83,15 @@ Goal: start the radio from the home screen.
 - [x] Widget updates whenever playback state changes
 - [x] Tests for the widget's state and click actions
 - [x] UI checks for the user, automated: font scaling (1.3x, all four states), contrast (WCAG AA for every token pair) and TalkBack labels ("Speel RSG" / "Stop RSG")
-- [ ] Try TalkBack and a large font size on a real phone
+- [x] Try TalkBack and a large font size on a real phone
 - [x] Afrikaans status pill per DESIGN.md (Gestop / Koppel aan RSG… / Regstreeks / retry countdown)
 - [x] Update the main screen layout to match [DESIGN.md](DESIGN.md): design tokens (colours, Atkinson Hyperlegible, sizes), station art, status pill, now-playing card, 200dp button pinned to the bottom (Gestop, Koppel tans and Speel states)
 - [x] "Verbinding verloor" state: warning panel, dimmed art and a live retry countdown (the service has to publish its reconnect state to the session first)
 - [x] Launcher icon: adaptive icon with a transparent foreground cut from the artwork, scaled to sit inside the 66dp safe zone, on a white background
-- [ ] Check the launch splash on an Android 12+ phone: the icon should stay inside the round mask
+- [x] Check the launch splash on an Android 12+ phone: the icon should stay inside the round mask
 - [x] Shrink `radio.jpg` (also the session artwork and the in-app image) to 512px
 - [x] Finish the README: installing from the CI artifact, allowing unknown sources, adding the widget
 
 Done when:
 
-- [ ] The widget works from a cold start (app not running) on Android 12+ with no crash
+- [x] The widget works from a cold start (app not running) on Android 12+ with no crash
