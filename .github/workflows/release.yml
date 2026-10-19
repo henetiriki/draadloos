@@ -1,0 +1,51 @@
+name: Release
+
+# Push a tag like v1.0.0 to build a signed APK and attach it to a GitHub Release.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Check the tag matches versionName
+        run: |
+          version=$(sed -n 's/.*versionName = "\(.*\)".*/\1/p' app/build.gradle.kts)
+          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
+            echo "Tag $GITHUB_REF_NAME does not match versionName $version in app/build.gradle.kts" >&2
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Decode keystore
+        run: echo "$KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/draadloos-release.jks"
+        env:
+          KEYSTORE_BASE64: ${{ secrets.DRAADLOOS_KEYSTORE_BASE64 }}
+
+      - name: Build signed APK
+        run: ./gradlew assembleRelease
+        env:
+          DRAADLOOS_KEYSTORE: ${{ runner.temp }}/draadloos-release.jks
+          DRAADLOOS_KEYSTORE_PASSWORD: ${{ secrets.DRAADLOOS_KEYSTORE_PASSWORD }}
+          DRAADLOOS_KEY_ALIAS: ${{ secrets.DRAADLOOS_KEY_ALIAS }}
+          DRAADLOOS_KEY_PASSWORD: ${{ secrets.DRAADLOOS_KEY_PASSWORD }}
+
+      - name: Create the release
+        run: |
+          cp app/build/outputs/apk/release/app-release.apk "draadloos-$VERSION.apk"
+          gh release create "$GITHUB_REF_NAME" "draadloos-$VERSION.apk" --title "Draadloos $VERSION" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}

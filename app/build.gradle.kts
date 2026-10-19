@@ -6,6 +6,16 @@ plugins {
     alias(libs.plugins.kover)
 }
 
+// Release signing values come from Gradle properties (~/.gradle/gradle.properties) or environment
+// variables (CI), never from the repo. The keystore defaults to the git-ignored one in the repo root.
+fun signingValue(name: String): String? =
+    providers.gradleProperty(name).orElse(providers.environmentVariable(name)).orNull
+        ?.takeIf { it.isNotBlank() }
+
+val releaseKeystore: File =
+    signingValue("DRAADLOOS_KEYSTORE")?.let(::file) ?: rootProject.file("draadloos-release.jks")
+val releaseStorePassword: String? = signingValue("DRAADLOOS_KEYSTORE_PASSWORD")
+
 android {
     namespace = "house.ouwl.draadloos"
     compileSdk = 37
@@ -18,9 +28,23 @@ android {
         versionName = "0.1.0"
     }
 
+    signingConfigs {
+        // Only defined when the keystore and its password are available, so debug builds, tests and
+        // CI's other jobs work without them. Without it, assembleRelease makes an unsigned APK.
+        if (releaseKeystore.exists() && releaseStorePassword != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword = releaseStorePassword
+                keyAlias = signingValue("DRAADLOOS_KEY_ALIAS") ?: "draadloos"
+                keyPassword = signingValue("DRAADLOOS_KEY_PASSWORD") ?: releaseStorePassword
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
         }
     }
 
